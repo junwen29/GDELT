@@ -1,0 +1,17 @@
+{
+    "logging":{
+        "display_name": "fs_events",
+        "log_directory": "..\\logs"
+    },
+    "proxy":{
+        "enabled": "false",
+        "http_ip_port": "123.123.123.123:80",
+        "https_ip_port": "123.123.123.123:80"
+    },
+    "app":{
+        "es_index_name": "events",
+        "xml_directory": "..\\data\\xml",
+        "json_directory": "..\\data\\json",
+        "ib_directory": "..\\data\\ib"
+    }
+}
