@@ -286,7 +286,7 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Unittests in C:/Users/junwen29/PycharmProjects/GDELTApp/test_car.py" type="tests" factoryName="Unittests" temporary="true" nameIsGenerated="true">
+    <configuration name="Unittests in C:/Users/junwen29/PycharmProjects/GDELT/test_car.py" type="tests" factoryName="Unittests" temporary="true" nameIsGenerated="true">
       <module name="GDELTApp" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -303,7 +303,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python.gdelt" />
-        <item itemvalue="Python tests.Unittests in C:/Users/junwen29/PycharmProjects/GDELTApp/test_car.py" />
+        <item itemvalue="Python tests.Unittests in C:/Users/junwen29/PycharmProjects/GDELT/test_car.py" />
         <item itemvalue="Python tests.Unittests for test_car.TestBrake" />
         <item itemvalue="Python tests.Unittests for test_car.TestAccelerate" />
         <item itemvalue="Python tests.Unittests for test_car.TestInit" />
