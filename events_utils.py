@@ -14,7 +14,8 @@ with open('..\\config.json') as json_data_file:
 class EventsParser(object):
 
     @staticmethod
-    # def generate_events(title, content, source, created_datetime, category_list, country_list, author_list, base64_string=""):
+    # def generate_events(title, content, source, created_datetime, category_list, country_list, author_list,
+    # base64_string=""):
     def generate_events(title, content, source, created_datetime, country, lat, lng, category_list, author_list,
                         hit_list=None):
         event = {"title": title, "content": content, "source": source,
