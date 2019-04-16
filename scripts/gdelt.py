@@ -4,6 +4,7 @@ import io
 import logging
 import logging.config
 import os
+import subprocess
 import time
 import traceback
 import urllib
@@ -26,8 +27,10 @@ from gdelt_headers import headers
 from gdelt_keywords_we_want import keywords_we_want
 
 gdelt_last_update_url = 'http://data.gdeltproject.org/gdeltv2/lastupdate.txt'
-gdelt_csv_directory = '..\\data'
-logging_directory = '..\\logs'
+gdelt_csv_directory = '..\\GDELT\\data'
+logging_directory = '..\\GDELT\\logs'
+gdelt_processed_csv_directory = '..\\GDELT\\data\\processed_csv'
+gdelt_in_process_csv_directory = '..\\GDELT\\data\\in_process_csv'
 
 browser_headers = {'User-Agent': "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
                    'Accept': '*/*'}
@@ -154,166 +157,182 @@ def get_gdelt_export_url(url):
     return text.split('\n')[0].split(' ')[2]
 
 
-def get_gdelt_csv_files(url):
-    logger.info('Downloading GDELT export zip file from  {} ... '.format(gdelt_export_url))
-    r = requests.get(url, headers=browser_headers, timeout=10, stream=True)
+def get_gdelt_csv_files(export_url):
+    logger.info('Downloading GDELT export zip file from  {} ... '.format(export_url))
+    r = requests.get(export_url, headers=browser_headers, timeout=10, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(gdelt_csv_directory)
-    csv_files = [f for f in os.listdir(gdelt_csv_directory) if isfile(join(gdelt_csv_directory, f))]
+    z.extractall(gdelt_in_process_csv_directory)
+    csv_files = [f for f in os.listdir(gdelt_in_process_csv_directory) if
+                 isfile(join(gdelt_in_process_csv_directory, f))]
     return csv_files
 
 
-#################################################################################################################################################################################
+def move_csv_files_to_processed_folder():
+    src = os.path.abspath(gdelt_in_process_csv_directory)
+    dst = os.path.abspath(gdelt_processed_csv_directory)
+    list_of_files = os.listdir(src)
+    for f in list_of_files:
+        full_path = src + "\\" + f
+        logger.info("Moving files [" + full_path + "] to [" + dst + "]")
+        subprocess.Popen("move " + " " + full_path + " " + dst, shell=True)  # move command is os dependent
+
+
+def run():
+    events_list = list()
+
+    logger.info('Reading GDELT last update text at {} ...'.format(gdelt_last_update_url))
+
+    # Retrieving gdelt_export_url
+    gdelt_export_url = get_gdelt_export_url(gdelt_last_update_url)
+
+    # Download the csv zip files from gdelt_export_url
+    gdelt_csv_files = get_gdelt_csv_files(gdelt_export_url)
+
+    has_files = False
+    if gdelt_csv_files:
+        has_files = True
+        logger.info(
+            'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files, gdelt_csv_directory))
+    else:
+        logger.error('Failed to download any GDELT csv files')
+
+    if has_files:
+        for csv_file in gdelt_csv_files:
+            csv_file_path = gdelt_in_process_csv_directory + '\\' + csv_file
+            csv_reader = csv.reader(open(csv_file_path, newline=''), delimiter=' ', quotechar='|')
+            num_empty_rows = 0
+            num_rows = 0
+            num_error_rows = 0
+            set_of_urls = set()
+
+            for row in csv_reader:
+                if len(row) > 0:
+                    num_rows += 1
+                    value = ''.join(row)
+                    # logger.info(value)
+
+                    values = value.split("\t")
+
+                    event_root_code = values[headers.index("EventRootCode")]
+                    event_base_code = values[headers.index("EventBaseCode")]
+
+                    if int(event_root_code) < 4:
+                        continue
+                    if 9 <= int(event_root_code) <= 13:
+                        continue
+                    if int(event_root_code) == 4 or int(event_root_code) == 5 or int(event_root_code) == 6 or int(
+                            event_root_code) == 14:
+                        if event_base_code not in base_codes_we_want:
+                            continue
+
+                    country_code = values[headers.index("ActionGeo_CountryCode")]
+
+                    if country_code not in countries_we_want:
+                        continue
+
+                    event_date = values[headers.index("SQLDATE")]
+                    lat = values[headers.index("ActionGeo_Lat")]
+                    lng = values[headers.index("ActionGeo_Long")]
+
+                    source = values[headers.index("SOURCEURL")]
+                    source = source.replace("\r", "")
+                    source = source.replace("\n", "")
+
+                    if source in set_of_urls:
+                        continue
+                    else:
+                        set_of_urls.add(source)  # ensures that we don't have duplicate records per run
+
+                    event_type = values[headers.index("EventCode")]
+                    num_mentions = values[headers.index("NumMentions")]
+                    num_sources = values[headers.index("NumSources")]
+                    num_articles = values[headers.index("NumArticles")]
+                    avg_tone = values[headers.index("AvgTone")]
+
+                    is_root_event = values[headers.index("IsRootEvent")]
+
+                    logger.info('START - FOR IB')
+                    ts = time.time()
+                    created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+                    rich_preview_dict = get_article_preview(source)
+                    headline = rich_preview_dict["headline"]
+                    # logger.info headline.encode("utf-8")
+                    description = rich_preview_dict["description"]
+
+                    content = get_article_content(source)
+                    if content is not None:
+                        if len(content) > 10:
+                            description = content
+
+                    # logger.info description.encode("utf-8")
+                    logger.info("Checking if article contains any keywords we want...")
+
+                    hit_list = list()
+                    if headline is not None and description is not None:
+                        discard = True
+                        for keyword in keywords_we_want:
+                            if keyword in headline.lower():
+                                logger.debug('[' + keyword + '] is hit in [' + headline + ']')
+                                hit_list.append(keyword)
+                                discard = False
+                            if keyword in description.lower():
+                                logger.debug('[' + keyword + '] is hit in [' + description + ']')
+                                hit_list.append(keyword)
+                                discard = False
+                        if discard:
+                            logger.info("FAILED: Checking if article contains any keywords we want...")
+                            continue
+                    else:
+                        continue
+                    logger.info("Done and passed! Checking if article contains any keywords we want...")
+
+                    category_list = list()
+                    event_type = str(event_type)
+                    if len(event_type) <= 2:
+                        event_type = "0" + event_type
+                    event_str = event_codes_mapping[event_type]
+                    category_list.append({"category": event_str})
+                    logger.info('Event category = {}'.format(event_str))
+                    author_list = list()
+                    author_list.append({"author": "OPEN-SOURCE INTERNET"})
+                    try:
+                        event_object = events_utils.EventsParser.generate_events(headline,
+                                                                                 description, source,
+                                                                                 created_datetime,
+                                                                                 countries_mapping[country_code],
+                                                                                 str(lat),
+                                                                                 str(lng), category_list, author_list,
+                                                                                 hit_list)
+                    except Exception as e:
+                        logger.info(traceback.format_exc())
+                        num_error_rows += num_error_rows
+                        continue
+                    events_list.append(event_object)
+                    logger.info('END - FOR IB')
+
+                else:
+                    num_empty_rows += 1
+
+            logger.info('#### Summary of {} ###'.format(csv_file))
+            logger.info('Number of events generated in {} = {}'.format(csv_file, len(events_list)))
+            logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
+            logger.info('Number of erroneous rows in {} = {}'.format(csv_file, num_error_rows))
+            logger.info('Number of empty rows in {} = {}\n'.format(csv_file, num_empty_rows))
+
+            EventsXML = events_utils.EventsParser().get_tree(events_list)
+            EventsJSON = events_utils.EventsParser().get_json(events_list)
+            EventsCSV = events_utils.EventsParser().get_csv(events_list)
+
+
+# ###############################################################################################################################################################################
 
 # Execution
 
-#################################################################################################################################################################################
+# ################################################################################################################################################################################
 
 logger = setup_logger()
-
-events_list = list()
-
-logger.info('Reading GDELT last update text at {} ...'.format(gdelt_last_update_url))
-
-# Retrieving gdelt_export_url
-gdelt_export_url = get_gdelt_export_url(gdelt_last_update_url)
-
-# Download the csv zip files from gdelt_export_url
-gdelt_csv_files = get_gdelt_csv_files(gdelt_export_url)
-
-has_files = False
-if gdelt_csv_files:
-    has_files = True
-    logger.info(
-        'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files, gdelt_csv_directory))
-else:
-    logger.error('Failed to download any GDELT csv files')
-
-if has_files:
-    for csv_file in gdelt_csv_files:
-        csv_file_path = gdelt_csv_directory + '\\' + csv_file
-        csv_reader = csv.reader(open(csv_file_path, newline=''), delimiter=' ', quotechar='|')
-        num_empty_rows = 0
-        num_rows = 0
-        num_error_rows = 0
-        set_of_urls = set()
-
-        for row in csv_reader:
-            if len(row) > 0:
-                num_rows += 1
-                value = ''.join(row)
-                # logger.info(value)
-
-                values = value.split("\t")
-
-                event_root_code = values[headers.index("EventRootCode")]
-                event_base_code = values[headers.index("EventBaseCode")]
-
-                if int(event_root_code) < 4:
-                    continue
-                if 9 <= int(event_root_code) <= 13:
-                    continue
-                if int(event_root_code) == 4 or int(event_root_code) == 5 or int(event_root_code) == 6 or int(
-                        event_root_code) == 14:
-                    if event_base_code not in base_codes_we_want:
-                        continue
-
-                country_code = values[headers.index("ActionGeo_CountryCode")]
-
-                if country_code not in countries_we_want:
-                    continue
-
-                event_date = values[headers.index("SQLDATE")]
-                lat = values[headers.index("ActionGeo_Lat")]
-                lng = values[headers.index("ActionGeo_Long")]
-
-                source = values[headers.index("SOURCEURL")]
-                source = source.replace("\r", "")
-                source = source.replace("\n", "")
-
-                if source in set_of_urls:
-                    continue
-                else:
-                    set_of_urls.add(source)  # ensures that we don't have duplicate records per run
-
-                event_type = values[headers.index("EventCode")]
-                num_mentions = values[headers.index("NumMentions")]
-                num_sources = values[headers.index("NumSources")]
-                num_articles = values[headers.index("NumArticles")]
-                avg_tone = values[headers.index("AvgTone")]
-
-                is_root_event = values[headers.index("IsRootEvent")]
-
-                logger.info('START - FOR IB')
-                ts = time.time()
-                created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-
-                rich_preview_dict = get_article_preview(source)
-                headline = rich_preview_dict["headline"]
-                # logger.info headline.encode("utf-8")
-                description = rich_preview_dict["description"]
-
-                content = get_article_content(source)
-                if content is not None:
-                    if len(content) > 10:
-                        description = content
-
-                # logger.info description.encode("utf-8")
-                logger.info("Checking if article contains any keywords we want...")
-
-                hit_list = list()
-                if headline is not None and description is not None:
-                    discard = True
-                    for keyword in keywords_we_want:
-                        if keyword in headline.lower():
-                            logger.debug('[' + keyword + '] is hit in [' + headline + ']')
-                            hit_list.append(keyword)
-                            discard = False
-                        if keyword in description.lower():
-                            logger.debug('[' + keyword + '] is hit in [' + description + ']')
-                            hit_list.append(keyword)
-                            discard = False
-                    if discard:
-                        logger.info("FAILED: Checking if article contains any keywords we want...")
-                        continue
-                else:
-                    continue
-                logger.info("Done and passed! Checking if article contains any keywords we want...")
-
-                category_list = list()
-                event_type = str(event_type)
-                if len(event_type) <= 2:
-                    event_type = "0" + event_type
-                event_str = event_codes_mapping[event_type]
-                category_list.append({"category": event_str})
-                logger.info('Event category = {}'.format(event_str))
-                author_list = list()
-                author_list.append({"author": "OPEN-SOURCE INTERNET"})
-                try:
-                    event_object = events_utils.EventsParser.generate_events(headline,
-                                                                             description, source,
-                                                                             created_datetime,
-                                                                             countries_mapping[country_code], str(lat),
-                                                                             str(lng), category_list, author_list,
-                                                                             hit_list)
-                except Exception as e:
-                    logger.info(traceback.format_exc())
-                    num_error_rows += num_error_rows
-                    continue
-                events_list.append(event_object)
-                logger.info('END - FOR IB')
-
-            else:
-                num_empty_rows += 1
-
-        logger.info('#### Summary of {} ###'.format(csv_file))
-        logger.info('Number of events generated in {} = {}'.format(csv_file, len(events_list)))
-        logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
-        logger.info('Number of erroneous rows in {} = {}'.format(csv_file, num_error_rows))
-        logger.info('Number of empty rows in {} = {}\n'.format(csv_file, num_empty_rows))
-
-        EventsXML = events_utils.EventsParser().get_tree(events_list)
-        EventsJSON = events_utils.EventsParser().get_json(events_list)
-        EventsCSV = events_utils.EventsParser().get_csv(events_list)
-
-logger.info('Done: looking for new 15-minute updates')
+logger.info('Started: looking for new 15-minute GDELT updates')
+run()
+move_csv_files_to_processed_folder()
+logger.info('Done: looking for next new 15-minute updates')

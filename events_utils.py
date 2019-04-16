@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 from numpy.core import unicode
 
-with open('..\\config.json') as json_data_file:
+with open('config.json') as json_data_file:
     config = json.load(json_data_file)
 
 

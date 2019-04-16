@@ -1,7 +1,7 @@
 {
     "logging":{
         "display_name": "fs_events",
-        "log_directory": "..\\logs"
+        "log_directory": "..\\GDELT\\logs"
     },
     "proxy":{
         "enabled": "false",
@@ -10,8 +10,8 @@
     },
     "app":{
         "es_index_name": "events",
-        "xml_directory": "..\\data\\xml",
-        "json_directory": "..\\data\\json",
-        "ib_directory": "..\\data\\ib"
+        "xml_directory": "..\\GDELT\\data\\xml",
+        "json_directory": "..\\GDELT\\data\\json",
+        "ib_directory": "..\\GDELT\\data\\ib"
     }
 }
