@@ -59,9 +59,6 @@ def setup_logger():
     timestamp = time.time()
     logger_created_datetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y%m%d%H')
 
-    if not os.path.exists(logging_directory):
-        os.makedirs(logging_directory)
-
     handler = logging.FileHandler(logging_directory + '\\' + logger_created_datetime + '_events_app_log.log')
     lg.addHandler(handler)
     return lg
@@ -145,13 +142,14 @@ def get_article_content(the_url):
 
         g = Goose(goose_config)
         article = g.extract(url=the_url)
-        to_return = article.cleaned_text.replace("\n", " ")
         print("*** CONTENT ***\n")
+        to_return = article.cleaned_text.replace("\n", " ")
         for chunk in chunk_string(to_return, 200):
             print(chunk)
         return to_return
-    except Exception as e:
+    except ValueError as e:
         logger.error(traceback.format_exc())
+        logger.error(the_url)
         return ""
 
 
@@ -209,114 +207,120 @@ def run():
             num_error_rows = 0
             set_of_urls = set()
 
-            for row in csv_reader:
-                if len(row) > 0:
-                    num_rows += 1
-                    value = ''.join(row)
-                    # logger.info(value)
+            try:
+                for row in csv_reader:
+                    if len(row) > 0:
+                        num_rows += 1
+                        value = ''.join(row)
+                        # logger.info(value)
 
-                    values = value.split("\t")
+                        values = value.split("\t")
 
-                    event_root_code = values[headers.index("EventRootCode")]
-                    event_base_code = values[headers.index("EventBaseCode")]
+                        event_root_code = values[headers.index("EventRootCode")]
+                        event_base_code = values[headers.index("EventBaseCode")]
 
-                    if int(event_root_code) < 4:
-                        continue
-                    if 9 <= int(event_root_code) <= 13:
-                        continue
-                    if int(event_root_code) == 4 or int(event_root_code) == 5 or int(event_root_code) == 6 or int(
-                            event_root_code) == 14:
-                        if event_base_code not in base_codes_we_want:
+                        if int(event_root_code) < 4:
+                            continue
+                        if 9 <= int(event_root_code) <= 13:
+                            continue
+                        if int(event_root_code) == 4 or int(event_root_code) == 5 or int(event_root_code) == 6 or int(
+                                event_root_code) == 14:
+                            if event_base_code not in base_codes_we_want:
+                                continue
+
+                        country_code = values[headers.index("ActionGeo_CountryCode")]
+
+                        if country_code not in countries_we_want:
                             continue
 
-                    country_code = values[headers.index("ActionGeo_CountryCode")]
+                        event_date = values[headers.index("SQLDATE")]
+                        lat = values[headers.index("ActionGeo_Lat")]
+                        lng = values[headers.index("ActionGeo_Long")]
 
-                    if country_code not in countries_we_want:
-                        continue
+                        source = values[headers.index("SOURCEURL")]
+                        source = source.replace("\r", "")
+                        source = source.replace("\n", "")
 
-                    event_date = values[headers.index("SQLDATE")]
-                    lat = values[headers.index("ActionGeo_Lat")]
-                    lng = values[headers.index("ActionGeo_Long")]
-
-                    source = values[headers.index("SOURCEURL")]
-                    source = source.replace("\r", "")
-                    source = source.replace("\n", "")
-
-                    if source in set_of_urls:
-                        continue
-                    else:
-                        set_of_urls.add(source)  # ensures that we don't have duplicate records per run
-
-                    event_type = values[headers.index("EventCode")]
-                    num_mentions = values[headers.index("NumMentions")]
-                    num_sources = values[headers.index("NumSources")]
-                    num_articles = values[headers.index("NumArticles")]
-                    avg_tone = values[headers.index("AvgTone")]
-
-                    is_root_event = values[headers.index("IsRootEvent")]
-
-                    logger.info('START - FOR IB')
-                    ts = time.time()
-                    created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-
-                    rich_preview_dict = get_article_preview(source)
-                    headline = rich_preview_dict["headline"]
-                    # logger.info headline.encode("utf-8")
-                    description = rich_preview_dict["description"]
-
-                    content = get_article_content(source)
-                    if content is not None:
-                        if len(content) > 10:
-                            description = content
-
-                    # logger.info description.encode("utf-8")
-                    logger.info("Checking if article contains any keywords we want...")
-
-                    hit_list = list()
-                    if headline is not None and description is not None:
-                        discard = True
-                        for keyword in keywords_we_want:
-                            if keyword in headline.lower():
-                                logger.debug('[' + keyword + '] is hit in [' + headline + ']')
-                                hit_list.append(keyword)
-                                discard = False
-                            if keyword in description.lower():
-                                logger.debug('[' + keyword + '] is hit in [' + description + ']')
-                                hit_list.append(keyword)
-                                discard = False
-                        if discard:
-                            logger.info("FAILED: Checking if article contains any keywords we want...")
+                        if source in set_of_urls:
                             continue
+                        else:
+                            set_of_urls.add(source)  # ensures that we don't have duplicate records per run
+
+                        event_type = values[headers.index("EventCode")]
+                        num_mentions = values[headers.index("NumMentions")]
+                        num_sources = values[headers.index("NumSources")]
+                        num_articles = values[headers.index("NumArticles")]
+                        avg_tone = values[headers.index("AvgTone")]
+
+                        is_root_event = values[headers.index("IsRootEvent")]
+
+                        logger.info('START - FOR IB')
+                        ts = time.time()
+                        created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+                        rich_preview_dict = get_article_preview(source)
+                        headline = rich_preview_dict["headline"]
+                        # logger.info headline.encode("utf-8")
+                        description = rich_preview_dict["description"]
+
+                        content = get_article_content(source)
+                        if content is not None:
+                            if len(content) > 10:
+                                description = content
+
+                        # logger.info description.encode("utf-8")
+                        logger.info("Checking if article contains any keywords we want...")
+
+                        hit_list = list()
+                        if headline is not None and description is not None:
+                            discard = True
+                            for keyword in keywords_we_want:
+                                if keyword in headline.lower():
+                                    logger.debug('[' + keyword + '] is hit in [' + headline + ']')
+                                    hit_list.append(keyword)
+                                    discard = False
+                                if keyword in description.lower():
+                                    logger.debug('[' + keyword + '] is hit in [' + description + ']')
+                                    hit_list.append(keyword)
+                                    discard = False
+                            if discard:
+                                logger.info("Discarding article since no hit in headline or description...")
+                                continue
+                        else:
+                            continue
+                        logger.info("Done and passed! Checking if article contains any keywords we want...")
+
+                        category_list = list()
+                        event_type = str(event_type)
+                        if len(event_type) <= 2:
+                            event_type = "0" + event_type
+                        event_str = event_codes_mapping[event_type]
+                        category_list.append({"category": event_str})
+                        logger.info('Event category = {}'.format(event_str))
+                        author_list = list()
+                        author_list.append({"author": "OPEN-SOURCE INTERNET"})
+                        try:
+                            event_object = events_utils.EventsParser.generate_events(headline,
+                                                                                     description, source,
+                                                                                     created_datetime,
+                                                                                     countries_mapping[country_code],
+                                                                                     str(lat),
+                                                                                     str(lng), category_list, author_list,
+                                                                                     hit_list)
+                        except UnicodeDecodeError as e:
+                            logger.error(traceback.format_exc())
+                            logger.error('UnicodeDecodeError in ' + csv_file + '.')
+                            logger.error(row)
+                            num_error_rows += num_error_rows
+                            continue
+                        events_list.append(event_object)
+                        logger.info('END - FOR IB')
+
                     else:
-                        continue
-                    logger.info("Done and passed! Checking if article contains any keywords we want...")
-
-                    category_list = list()
-                    event_type = str(event_type)
-                    if len(event_type) <= 2:
-                        event_type = "0" + event_type
-                    event_str = event_codes_mapping[event_type]
-                    category_list.append({"category": event_str})
-                    logger.info('Event category = {}'.format(event_str))
-                    author_list = list()
-                    author_list.append({"author": "OPEN-SOURCE INTERNET"})
-                    try:
-                        event_object = events_utils.EventsParser.generate_events(headline,
-                                                                                 description, source,
-                                                                                 created_datetime,
-                                                                                 countries_mapping[country_code],
-                                                                                 str(lat),
-                                                                                 str(lng), category_list, author_list,
-                                                                                 hit_list)
-                    except Exception as e:
-                        logger.info(traceback.format_exc())
-                        num_error_rows += num_error_rows
-                        continue
-                    events_list.append(event_object)
-                    logger.info('END - FOR IB')
-
-                else:
-                    num_empty_rows += 1
+                        num_empty_rows += 1
+            except UnicodeDecodeError as e:
+                logger.error(traceback.format_exc())
+                logger.error(csv_file)
 
             logger.info('#### Summary of {} ###'.format(csv_file))
             logger.info('Number of events generated in {} = {}'.format(csv_file, len(events_list)))
@@ -329,12 +333,26 @@ def run():
             EventsCSV = events_utils.EventsParser().get_csv(events_list)
 
 
+def setup_directories():
+    if not os.path.exists(gdelt_csv_directory):
+        os.makedirs(gdelt_csv_directory)
+
+    if not os.path.exists(logging_directory):
+        os.makedirs(logging_directory)
+
+    if not os.path.exists(gdelt_in_process_csv_directory):
+        os.makedirs(gdelt_in_process_csv_directory)
+
+    if not os.path.exists(gdelt_processed_csv_directory):
+        os.makedirs(gdelt_processed_csv_directory)
+
+
 # ###############################################################################################################################################################################
 
 # Execution
 
 # ################################################################################################################################################################################
-
+setup_directories()
 logger = setup_logger()
 logger.info('Started: looking for new 15-minute GDELT updates')
 run()
