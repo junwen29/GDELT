@@ -58,8 +58,12 @@ def setup_logger():
 
     timestamp = time.time()
     logger_created_datetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y%m%d%H')
-    hdlr = logging.FileHandler(logging_directory + '\\' + logger_created_datetime + '_events_app_log.log')
-    lg.addHandler(hdlr)
+
+    if not os.path.exists(logging_directory):
+        os.makedirs(logging_directory)
+
+    handler = logging.FileHandler(logging_directory + '\\' + logger_created_datetime + '_events_app_log.log')
+    lg.addHandler(handler)
     return lg
 
 

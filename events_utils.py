@@ -4,6 +4,7 @@ import datetime
 import json
 import time
 import xml.etree.ElementTree as ET
+import os
 
 from numpy.core import unicode
 
@@ -165,6 +166,10 @@ class EventsParser(object):
         '''
 
         ts = time.time()
+
+        if not os.path.exists(config["app"]["json_directory"]):
+            os.makedirs(config["app"]["json_directory"])
+
         created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
         filename = config["app"]["json_directory"] + "\\" + created_datetime + "_for_es.json"
         ib_filename = config["app"]["ib_directory"] + "\\" + created_datetime + "_for_ib.csv"
