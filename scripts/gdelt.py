@@ -323,7 +323,7 @@ def run():
                 logger.error(csv_file)
 
             logger.info('#### Summary of {} ###'.format(csv_file))
-            logger.info('Number of events generated in {} = {}'.format(csv_file, len(events_list)))
+            logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
             logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
             logger.info('Number of erroneous rows in {} = {}'.format(csv_file, num_error_rows))
             logger.info('Number of empty rows in {} = {}\n'.format(csv_file, num_empty_rows))
