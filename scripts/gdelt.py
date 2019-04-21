@@ -10,9 +10,9 @@ import traceback
 import urllib
 import urllib.request
 import zipfile
-from os.path import isfile, join
-
 import requests
+
+from os.path import isfile, join
 from bs4 import BeautifulSoup
 from goose3 import Goose
 from numpy.distutils.misc_util import Configuration
@@ -25,12 +25,6 @@ from gdelt_countries_we_want import countries_we_want
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
 from gdelt_keywords_we_want import keywords_we_want
-
-gdelt_last_update_url = 'http://data.gdeltproject.org/gdeltv2/lastupdate.txt'
-gdelt_csv_directory = '..\\GDELT\\data'
-logging_directory = '..\\GDELT\\logs'
-gdelt_processed_csv_directory = '..\\GDELT\\data\\processed_csv'
-gdelt_in_process_csv_directory = '..\\GDELT\\data\\in_process_csv'
 
 browser_headers = {'User-Agent': "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
                    'Accept': '*/*'}
@@ -59,7 +53,7 @@ def setup_logger():
     timestamp = time.time()
     logger_created_datetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y%m%d%H')
 
-    handler = logging.FileHandler(logging_directory + '\\' + logger_created_datetime + '_events_app_log.log')
+    handler = logging.FileHandler(config["logging"]["log_directory"] + '\\' + logger_created_datetime + '.log')
     lg.addHandler(handler)
     return lg
 
@@ -163,15 +157,15 @@ def get_gdelt_csv_files(export_url):
     logger.info('Downloading GDELT export zip file from  {} ... '.format(export_url))
     r = requests.get(export_url, headers=browser_headers, timeout=10, stream=True)
     z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(gdelt_in_process_csv_directory)
-    csv_files = [f for f in os.listdir(gdelt_in_process_csv_directory) if
-                 isfile(join(gdelt_in_process_csv_directory, f))]
+    z.extractall(config["gdelt"]["in_process_csv_directory"])
+    csv_files = [f for f in os.listdir(config["gdelt"]["in_process_csv_directory"]) if
+                 isfile(join(config["gdelt"]["in_process_csv_directory"], f))]
     return csv_files
 
 
 def move_csv_files_to_processed_folder():
-    src = os.path.abspath(gdelt_in_process_csv_directory)
-    dst = os.path.abspath(gdelt_processed_csv_directory)
+    src = os.path.abspath(config["gdelt"]["in_process_csv_directory"])
+    dst = os.path.abspath(config["gdelt"]["processed_csv_directory"])
     list_of_files = os.listdir(src)
     for f in list_of_files:
         full_path = src + "\\" + f
@@ -182,10 +176,10 @@ def move_csv_files_to_processed_folder():
 def run():
     events_list = list()
 
-    logger.info('Reading GDELT last update text at {} ...'.format(gdelt_last_update_url))
+    logger.info('Reading GDELT last update text at {} ...'.format(config["gdelt"]["last_update_url"]))
 
     # Retrieving gdelt_export_url
-    gdelt_export_url = get_gdelt_export_url(gdelt_last_update_url)
+    gdelt_export_url = get_gdelt_export_url(config["gdelt"]["last_update_url"])
 
     # Download the csv zip files from gdelt_export_url
     gdelt_csv_files = get_gdelt_csv_files(gdelt_export_url)
@@ -194,13 +188,13 @@ def run():
     if gdelt_csv_files:
         has_files = True
         logger.info(
-            'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files, gdelt_csv_directory))
+            'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files, config["gdelt"]["csv_directory"]))
     else:
         logger.error('Failed to download any GDELT csv files')
 
     if has_files:
         for csv_file in gdelt_csv_files:
-            csv_file_path = gdelt_in_process_csv_directory + '\\' + csv_file
+            csv_file_path = config["gdelt"]["in_process_csv_directory"] + '\\' + csv_file
             csv_reader = csv.reader(open(csv_file_path, newline=''), delimiter=' ', quotechar='|')
             num_empty_rows = 0
             num_rows = 0
@@ -305,7 +299,8 @@ def run():
                                                                                      created_datetime,
                                                                                      countries_mapping[country_code],
                                                                                      str(lat),
-                                                                                     str(lng), category_list, author_list,
+                                                                                     str(lng), category_list,
+                                                                                     author_list,
                                                                                      hit_list)
                         except UnicodeDecodeError as e:
                             logger.error(traceback.format_exc())
@@ -334,17 +329,17 @@ def run():
 
 
 def setup_directories():
-    if not os.path.exists(gdelt_csv_directory):
-        os.makedirs(gdelt_csv_directory)
+    if not os.path.exists(config["gdelt"]["csv_directory"]):
+        os.makedirs(config["gdelt"]["csv_directory"])
 
-    if not os.path.exists(logging_directory):
-        os.makedirs(logging_directory)
+    if not os.path.exists(config["logging"]["log_directory"]):
+        os.makedirs(config["logging"]["log_directory"])
 
-    if not os.path.exists(gdelt_in_process_csv_directory):
-        os.makedirs(gdelt_in_process_csv_directory)
+    if not os.path.exists(config["gdelt"]["in_process_csv_directory"]):
+        os.makedirs(config["gdelt"]["in_process_csv_directory"])
 
-    if not os.path.exists(gdelt_processed_csv_directory):
-        os.makedirs(gdelt_processed_csv_directory)
+    if not os.path.exists(config["gdelt"]["processed_csv_directory"]):
+        os.makedirs(config["gdelt"]["processed_csv_directory"])
 
 
 # ###############################################################################################################################################################################

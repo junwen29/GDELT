@@ -13,5 +13,11 @@
         "xml_directory": "..\\GDELT\\data\\xml",
         "json_directory": "..\\GDELT\\data\\json",
         "ib_directory": "..\\GDELT\\data\\ib"
+    },
+    "gdelt": {
+        "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
+        "csv_directory":  "..\\GDELT\\data",
+        "processed_csv_directory": "..\\GDELT\\data\\processed_csv",
+        "in_process_csv_directory": "..\\GDELT\\data\\in_process_csv"
     }
 }
