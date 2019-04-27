@@ -19,9 +19,12 @@
         "csv_directory":  "..\\GDELT\\data",
         "processed_csv_directory": "..\\GDELT\\data\\processed_csv",
         "in_process_csv_directory": "..\\GDELT\\data\\in_process_csv",
-        "browser_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
-            "Accept": "*/*"
+        "browser": {
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
+                "Accept": "*/*"
+            },
+            "time_out": 20
         },
         "event_base_codes_we_want": ["042", "043", "044", "045", "046", "057", "064", "145"],
         "countries_we_want": ["SN", "MY", "BX", "ID", "RP", "IN", "TH", "VM", "HK", "CH", "BM", "CB", "LA", "TW",
