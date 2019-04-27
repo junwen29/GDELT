@@ -1,16 +1,14 @@
-import json
+import datetime
 import logging
 import logging.config
 import os
-
-import schedule
 import time
 
-import config_utils
-import scripts.gdelt as gdelt
-import datetime
-
+import schedule
 import yaml
+
+import config_utils
+from scripts import gdelt
 
 logger = logging.getLogger('App')
 
@@ -30,6 +28,7 @@ def main():
     logger.info("Completed the setup of schedule jobs")
 
     while 1:
+        logger.debug("Waiting to run pending schedules ...")
         schedule.run_pending()
         time.sleep(1)
 
