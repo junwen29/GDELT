@@ -5,7 +5,9 @@ import os
 
 import schedule
 import time
-# import scripts.gdelt as gdelt
+
+import config_utils
+import scripts.gdelt as gdelt
 import datetime
 
 import yaml
@@ -14,10 +16,7 @@ logger = logging.getLogger('App')
 
 
 def main():
-    with open('./config/config.json') as json_config_file:
-        config = json.load(json_config_file)
-
-    setup_directories(config)
+    setup_directories()
     setup_logging()
 
     logger.info("Completed the setup of directories & logging")
@@ -35,7 +34,7 @@ def main():
         time.sleep(1)
 
 
-def setup_logging(default_path="./config/logging_config.yml",
+def setup_logging(default_path="./config/logging.yml",
                   default_level=logging.INFO,
                   env_key="LOG_CFG"):
     """
@@ -77,7 +76,8 @@ def setup_logging(default_path="./config/logging_config.yml",
         logging.basicConfig(level=default_level)
 
 
-def setup_directories(config):
+def setup_directories():
+    config = config_utils.get_app_config()
     if not os.path.exists(config["gdelt"]["csv_directory"]):
         os.makedirs(config["gdelt"]["csv_directory"])
 
@@ -93,7 +93,7 @@ def setup_directories(config):
 
 def run_gdelt_script():
     logger.info("Running GDELT script at {}".format(datetime.datetime.now()))
-    # gdelt.run()
+    gdelt.run()
     logger.info("Completed running GDELT script at {}".format(datetime.datetime.now()))
 
 

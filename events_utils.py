@@ -8,9 +8,6 @@ import os
 
 from numpy.core import unicode
 
-with open('./config/config.json') as json_data_file:
-    config = json.load(json_data_file)
-
 
 class EventsParser(object):
 
@@ -140,6 +137,8 @@ class EventsParser(object):
         # ET.dump(tree)
         ts = time.time()
         created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
+        with open('config/app.json') as json_config_file:
+            config = json.load(json_config_file)
         tree.write(config["app"]["xml_directory"] + "\\" + created_datetime + "_for_ib.xml", xml_declaration=True,
                    encoding='utf-8', method="html")
 
@@ -166,6 +165,8 @@ class EventsParser(object):
         '''
 
         ts = time.time()
+        with open('config/app.json') as json_config_file:
+            config = json.load(json_config_file)
 
         if not os.path.exists(config["app"]["json_directory"]):
             os.makedirs(config["app"]["json_directory"])
@@ -229,6 +230,9 @@ class EventsParser(object):
 
         ts = time.time()
         created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
+        with open('config/app.json') as json_config_file:
+            config = json.load(json_config_file)
+
         filename = config["app"]["xml_directory"] + "\\" + created_datetime + "_friendly.csv"
 
         with open(filename, 'a') as outfile:

@@ -1,7 +1,6 @@
 import csv
 import datetime
 import io
-import logging
 import logging.config
 import os
 import subprocess
@@ -10,15 +9,16 @@ import traceback
 import urllib
 import urllib.request
 import zipfile
-import requests
-
 from os.path import isfile, join
+
+import requests
 from bs4 import BeautifulSoup
 from goose3 import Goose
 from numpy.distutils.misc_util import Configuration
 
+import App
+import config_utils
 import events_utils
-from events_utils import config
 from gdelt_base_codes_we_want import base_codes_we_want
 from gdelt_countries_mapping import countries_mapping
 from gdelt_countries_we_want import countries_we_want
@@ -29,33 +29,9 @@ from gdelt_keywords_we_want import keywords_we_want
 browser_headers = {'User-Agent': "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
                    'Accept': '*/*'}
 
+logger = logging.getLogger("GDELT")
 
-def setup_logger():
-    # create logger
-    lg = logging.getLogger('GDELT.py')
-
-    # logging.config.fileConfig(logging_conf_path)
-    lg.setLevel(logging.DEBUG)
-
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-
-    # add ch to logger
-    lg.addHandler(ch)
-
-    timestamp = time.time()
-    logger_created_datetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y%m%d%H')
-
-    handler = logging.FileHandler(config["logging"]["log_directory"] + '\\' + logger_created_datetime + '.log')
-    lg.addHandler(handler)
-    return lg
+config = config_utils.get_app_config()
 
 
 def get_article_preview(the_url):
@@ -174,6 +150,8 @@ def move_csv_files_to_processed_folder():
 
 
 def run():
+    logger.info('Started: looking for new 15-minute GDELT updates')
+
     events_list = list()
 
     logger.info('Reading GDELT last update text at {} ...'.format(config["gdelt"]["last_update_url"]))
@@ -188,7 +166,8 @@ def run():
     if gdelt_csv_files:
         has_files = True
         logger.info(
-            'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files, config["gdelt"]["csv_directory"]))
+            'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files,
+                                                                                 config["gdelt"]["csv_directory"]))
     else:
         logger.error('Failed to download any GDELT csv files')
 
@@ -327,29 +306,12 @@ def run():
             EventsJSON = events_utils.EventsParser().get_json(events_list)
             EventsCSV = events_utils.EventsParser().get_csv(events_list)
 
+    move_csv_files_to_processed_folder()
 
-def setup_directories():
-    if not os.path.exists(config["gdelt"]["csv_directory"]):
-        os.makedirs(config["gdelt"]["csv_directory"])
-
-    if not os.path.exists(config["logging"]["log_directory"]):
-        os.makedirs(config["logging"]["log_directory"])
-
-    if not os.path.exists(config["gdelt"]["in_process_csv_directory"]):
-        os.makedirs(config["gdelt"]["in_process_csv_directory"])
-
-    if not os.path.exists(config["gdelt"]["processed_csv_directory"]):
-        os.makedirs(config["gdelt"]["processed_csv_directory"])
+    logger.info('Done: looking for next new 15-minute updates')
 
 
-# ###############################################################################################################################################################################
-
-# Execution
-
-# ################################################################################################################################################################################
-setup_directories()
-logger = setup_logger()
-logger.info('Started: looking for new 15-minute GDELT updates')
-run()
-move_csv_files_to_processed_folder()
-logger.info('Done: looking for next new 15-minute updates')
+if __name__ == '__main__':
+    App.setup_directories()
+    App.setup_logging()
+    run()
