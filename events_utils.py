@@ -12,8 +12,6 @@ from numpy.core import unicode
 class EventsParser(object):
 
     @staticmethod
-    # def generate_events(title, content, source, created_datetime, category_list, country_list, author_list,
-    # base64_string=""):
     def generate_events(title, content, source, created_datetime, country, lat, lng, category_list, author_list,
                         hit_list=None):
         event = {"title": title, "content": content, "source": source,
@@ -40,13 +38,6 @@ class EventsParser(object):
     def get_tree(self, list_of_events):
 
         print("GENERATING TREE...")
-
-        '''
-        event = {"title": "title_bod", "content": "content_bod", "source": "source_bod",
-                "created_datetime": "created_datetime_bod", "categories" : [{"category": "MAKE A VISIT"}],
-                "countries": [{"country": "MALAYSIA"}], "authors": [{"author": "OPEN-SOURCE INTERNET"}]}
-        list_of_events = [event]
-        '''
 
         root_element = ET.Element('ns2:opsdashboard')
         root_element.set("xmlns:ns2", "http://www.asd.qwe.rt/sdf")
@@ -97,10 +88,6 @@ class EventsParser(object):
                     keyword_of_event = ET.SubElement(keywords_of_event, 'keyword')
                     keyword_of_event.text = word
 
-            # if len(event_object["base64_string"]) > 0:
-            #     pdf = ET.SubElement(event_node, 'pdf')
-            #     pdf.text = event_object["base64_string"]
-
             country = ET.SubElement(event_node, 'country')
             country.text = event_object["country"]
 
@@ -120,13 +107,6 @@ class EventsParser(object):
                 category_node = ET.SubElement(categories, 'category')
                 category_node.text = category_object["category"]
 
-            '''
-            countries = ET.SubElement(event_node, 'countries')
-            for country_object in event_object["countries"]:
-                country_node = ET.SubElement(countries, 'country')
-                country_node.text = country_object["country"]
-            '''
-
             authors = ET.SubElement(event_node, 'authors')
             for author_object in event_object["authors"]:
                 author_node = ET.SubElement(authors, 'author')
@@ -142,13 +122,6 @@ class EventsParser(object):
         tree.write(config["app"]["xml_directory"] + "\\" + created_datetime + "_for_ib.xml", xml_declaration=True,
                    encoding='utf-8', method="html")
 
-        '''
-        # can also just ET.dump(rootElement)
-        the_xml = ET.tostring(rootElement)
-        print(  BeautifulSoup(the_xml, "xml").prettify()  )
-        print "[" + sender.text + "]"
-        '''
-
         print("DONE: GENERATING TREE...")
 
     @staticmethod
@@ -157,12 +130,6 @@ class EventsParser(object):
         print("GENERATING ELASTICSEARCH JSON...")
 
         es_json_list = list()
-
-        '''
-        event = {"title": title, "content": content, "source": source,
-                "created_datetime": created_datetime, "country": country, "lat": lat, "lng": lng, "categories" : category_list,
-                "authors": author_list, "base64_string": base64_string, "hit_list": hit_list}
-        '''
 
         ts = time.time()
         with open('config/app.json') as json_config_file:
@@ -221,12 +188,6 @@ class EventsParser(object):
     def get_csv(list_of_events):
 
         print("GENERATING CSV...")
-
-        '''
-        event = {"title": title, "content": content, "source": source,
-                "created_datetime": created_datetime, "country": country, "lat": lat, "lng": lng, "categories" : category_list,
-                "authors": author_list, "base64_string": base64_string, "hit_list": hit_list}
-        '''
 
         ts = time.time()
         created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
