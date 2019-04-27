@@ -26,8 +26,7 @@ from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
 from gdelt_keywords_we_want import keywords_we_want
 
-browser_headers = {'User-Agent': "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
-                   'Accept': '*/*'}
+browser_headers = config_utils.get_app_config()["gdelt"]["browser_headers"]
 
 logger = logging.getLogger("GDELT")
 
@@ -230,7 +229,7 @@ def run():
 
                         is_root_event = values[headers.index("IsRootEvent")]
 
-                        logger.info('START - FOR IB')
+                        logger.info('Start building event from article ...')
                         ts = time.time()
                         created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -245,7 +244,7 @@ def run():
                                 description = content
 
                         # logger.info description.encode("utf-8")
-                        logger.info("Checking if article contains any keywords we want...")
+                        logger.info("Searching article against any keywords we want...")
 
                         hit_list = list()
                         if headline is not None and description is not None:
@@ -290,7 +289,8 @@ def run():
                             num_error_rows += num_error_rows
                             continue
                         events_list.append(event_object)
-                        logger.info('END - FOR IB')
+                        logger.info('Completed building event from article')
+                        logger.info('Currently {} event(s) built'.format(len(events_list)))
 
                     else:
                         num_empty_rows += 1
