@@ -23,6 +23,19 @@
             "User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
             "Accept": "*/*"
         },
-        "event_base_codes": ["042", "043", "044", "045", "046", "057", "064", "145"]
+        "event_base_codes_we_want": ["042", "043", "044", "045", "046", "057", "064", "145"],
+        "countries_we_want": ["SN", "MY", "BX", "ID", "RP", "IN", "TH", "VM", "HK", "CH", "BM", "CB", "LA", "TW",
+            "KN", "KS", "JA", "TT", "MC", "AS", "AE"],
+        "keywords_we_want": [
+            " appointment", " congress ", " coup ", " coronation ", " curfew ", " election", " martial law ",
+            " parliament ", " dissolve parliament ", " state funeral ", " asean summit ", " free trade agreement",
+            " fta ", " dialogue ", " bomb ", " gun ", " knife ", " gas ", " chemical ", " attack ", " assault ",
+            " terrorist", " security measure ", " terrorism ", " explosion", " extremist", " radical",
+            " insurgen", " deception ", " espionage ", " hack ", " state secret ", " spy ", " intelligence ",
+            "graft", "security", "corruption", "disciplin", "arrest", "detain", "investigat", "leak", "punish",
+            "surveillance", "demoted", "missing", " isis", "damage", "evidence", "monitor",
+            "operation", "sensitive", "target", "undetected"
+        ]
+
     }
 }

@@ -20,13 +20,14 @@ import App
 import config_utils
 import events_utils
 from gdelt_countries_mapping import countries_mapping
-from gdelt_countries_we_want import countries_we_want
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
-from gdelt_keywords_we_want import keywords_we_want
+# from gdelt_keywords_we_want import keywords_we_want
 
 browser_headers = config_utils.get_app_config()["gdelt"]["browser_headers"]
-base_codes_we_want = config_utils.get_app_config()["gdelt"]["event_base_codes"]
+base_codes_we_want = config_utils.get_app_config()["gdelt"]["event_base_codes_we_want"]
+countries_we_want = config_utils.get_app_config()["gdelt"]["countries_we_want"]
+keywords_we_want = config_utils.get_app_config()["gdelt"]["keywords_we_want"]
 
 logger = logging.getLogger("GDELT")
 
