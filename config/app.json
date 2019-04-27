@@ -15,6 +15,9 @@
         "ib_directory": "..\\GDELT\\data\\ib"
     },
     "gdelt": {
+        "is_delta_crawl": false,
+        "max_csv_urls_to_crawl": 20,
+        "master_file_list_url": "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
         "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
         "csv_directory":  "..\\GDELT\\data",
         "processed_csv_directory": "..\\GDELT\\data\\processed_csv",

@@ -21,17 +21,17 @@ from gdelt_countries_mapping import countries_mapping
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
 
-# from gdelt_keywords_we_want import keywords_we_want
+config = config_utils.get_app_config()
 
-browser_headers = config_utils.get_app_config()["gdelt"]["browser"]["headers"]
-browser_timeout = config_utils.get_app_config()["gdelt"]["browser"]["time_out"]
-base_codes_we_want = config_utils.get_app_config()["gdelt"]["event_base_codes_we_want"]
-countries_we_want = config_utils.get_app_config()["gdelt"]["countries_we_want"]
-keywords_we_want = config_utils.get_app_config()["gdelt"]["keywords_we_want"]
+browser_headers = config["gdelt"]["browser"]["headers"]
+browser_timeout = config["gdelt"]["browser"]["time_out"]
+base_codes_we_want = config["gdelt"]["event_base_codes_we_want"]
+countries_we_want = config["gdelt"]["countries_we_want"]
+keywords_we_want = config["gdelt"]["keywords_we_want"]
+is_delta_crawl = config["gdelt"]["is_delta_crawl"]
+max_urls_to_crawl = config["gdelt"]["max_csv_urls_to_crawl"]
 
 logger = logging.getLogger("GDELT")
-
-config = config_utils.get_app_config()
 
 erroneous_urls = list()
 
@@ -105,7 +105,7 @@ def get_article_content(url):
         logger.info("Getting article content of " + url + " with Goose")
         goose_config = {
             'browser_user_agent': 'Mozilla',
-            'parser_class': 'lxml', # soup or lxml for parsing xml and html
+            'parser_class': 'lxml',  # soup or lxml for parsing xml and html
             # 'enable_image_fetching': True,
             'http_timeout': browser_timeout
         }
@@ -132,6 +132,27 @@ def get_gdelt_export_url(url):
     r = requests.get(url, headers=browser_headers, timeout=10)
     text = r.text
     return text.split('\n')[0].split(' ')[2]
+
+
+def get_gdelt_export_urls(url, max_urls=100):
+    logger.info("Retrieving gdelt export urls with max number of urls = {}".format(max_urls))
+    r = requests.get(url, headers=browser_headers, timeout=10)
+    text = r.text
+    lines = text.split('\n')
+    urls = list()
+
+    for i in reversed(range(len(lines))):
+        if len(urls) > max_urls:
+            break
+        try:
+            line = lines[i]
+            url = line.split(' ')[2]
+            if "export" in url:
+                urls.append(url)
+        except Exception:
+            continue
+
+    return urls
 
 
 def get_gdelt_csv_files(export_url):
@@ -163,14 +184,29 @@ def run():
     logger.info('Looking for new 15-minute GDELT updates')
 
     events_list = list()
+    gdelt_export_urls = list()
+    gdelt_csv_files = list()
 
-    logger.info('Reading GDELT last update text at {} ...'.format(config["gdelt"]["last_update_url"]))
+    if is_delta_crawl:
+        logger.info('Reading GDELT last update text at {} ...'.format(config["gdelt"]["last_update_url"]))
+        # Retrieving gdelt_export_url
+        gdelt_export_url = get_gdelt_export_url(config["gdelt"]["last_update_url"])
+        gdelt_export_urls.append(gdelt_export_url)
 
-    # Retrieving gdelt_export_url
-    gdelt_export_url = get_gdelt_export_url(config["gdelt"]["last_update_url"])
+    else:
+        logger.info('Reading GDELT master file list text at {} ...'.format(config["gdelt"]["master_file_list_url"]))
+        gdelt_export_urls = get_gdelt_export_urls(config["gdelt"]["master_file_list_url"],
+                                                  config["gdelt"]["max_csv_urls_to_crawl"])
 
-    # Download the csv zip files from gdelt_export_url
-    gdelt_csv_files = get_gdelt_csv_files(gdelt_export_url)
+    # Download the csv zip files from gdelt_export_url(s)
+    for gdelt_url in gdelt_export_urls:
+        try:
+            csv_files = get_gdelt_csv_files(gdelt_url)
+            for c in csv_files:
+                gdelt_csv_files.append(c)
+        except Exception:
+            logger.exception("Failed to download csv files from {}".format(gdelt_url))
+            continue
 
     has_files = False
     if gdelt_csv_files:
@@ -209,8 +245,9 @@ def run():
                                 continue
                             if 9 <= int(event_root_code) <= 13:
                                 continue
-                            if int(event_root_code) == 4 or int(event_root_code) == 5 or int(event_root_code) == 6 or int(
-                                    event_root_code) == 14:
+                            if int(event_root_code) == 4 or int(event_root_code) == 5 or int(
+                                    event_root_code) == 6 or int(
+                                event_root_code) == 14:
                                 if event_base_code not in base_codes_we_want:
                                     continue
 
@@ -288,7 +325,8 @@ def run():
                             event_object = events_utils.EventsParser.generate_events(headline,
                                                                                      description, source,
                                                                                      created_datetime,
-                                                                                     countries_mapping[country_code],
+                                                                                     countries_mapping[
+                                                                                         country_code],
                                                                                      str(lat),
                                                                                      str(lng), category_list,
                                                                                      author_list,
@@ -321,7 +359,8 @@ def run():
 
     move_csv_files_to_processed_folder()
 
-    logger.info('Done: {} minutes to the next new 15-minute updates'.format((60 - datetime.datetime.now().minute) % 15))
+    logger.info(
+        'Done: {} minutes to the next new 15-minute updates'.format((60 - datetime.datetime.now().minute) % 15))
 
 
 if __name__ == '__main__':
@@ -335,4 +374,6 @@ if __name__ == '__main__':
     # get_article_content(
     #     "https://www.msn.com/en-au/news/australia/slain-brisbane-gp-dr-luping-zeng-laid-to-rest/ar-BBWlwrD")
 
+    # export_urls = get_gdelt_export_urls("http://data.gdeltproject.org/gdeltv2/masterfilelist.txt")
+    # logger.info(export_urls)
     run()
