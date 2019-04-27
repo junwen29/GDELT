@@ -95,10 +95,6 @@ def get_article_preview(the_url):
         return {"headline": title, "description": None}
 
 
-def chunk_string(string, length):
-    return (string[0 + i:length + i] for i in range(0, len(string), length))
-
-
 def get_article_content(url):
     try:
         logger.info("Getting article content of " + url + " with Goose")
