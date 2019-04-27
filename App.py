@@ -20,6 +20,20 @@ def main():
     setup_directories(config)
     setup_logging()
 
+    logger.info("Completed the setup of directories & logging")
+
+    logger.info("Setting up schedule jobs ...")
+    schedule.every().hour.at(":03").do(run_gdelt_script)
+    schedule.every().hour.at(":18").do(run_gdelt_script)
+    schedule.every().hour.at(":33").do(run_gdelt_script)
+    schedule.every().hour.at(":48").do(run_gdelt_script)
+
+    logger.info("Completed the setup of schedule jobs")
+
+    while 1:
+        schedule.run_pending()
+        time.sleep(1)
+
 
 def setup_logging(default_path="./config/logging_config.yml",
                   default_level=logging.INFO,
@@ -77,19 +91,11 @@ def setup_directories(config):
         os.makedirs(config["gdelt"]["processed_csv_directory"])
 
 
-def job():
-    current_dt = datetime.datetime.now()
-    print(str(current_dt))
+def run_gdelt_script():
+    logger.info("Running GDELT script at {}".format(datetime.datetime.now()))
     # gdelt.run()
+    logger.info("Completed running GDELT script at {}".format(datetime.datetime.now()))
 
 
 if __name__ == '__main__':
     main()
-    # schedule.every().hour.at(":03").do(job)
-    # schedule.every().hour.at(":18").do(job)
-    # schedule.every().hour.at(":33").do(job)
-    # schedule.every().hour.at(":48").do(job)
-    #
-    # while 1:
-    #     schedule.run_pending()
-    #     time.sleep(1)
