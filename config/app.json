@@ -22,6 +22,7 @@
         "browser_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
             "Accept": "*/*"
-        }
+        },
+        "event_base_codes": ["042", "043", "044", "045", "046", "057", "064", "145"]
     }
 }
