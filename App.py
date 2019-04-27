@@ -22,10 +22,10 @@ def main():
     logger.info("Completed the setup of directories & logging")
 
     logger.info("Setting up schedule jobs ...")
-    schedule.every().hour.at(":03").do(run_gdelt_script)
-    schedule.every().hour.at(":18").do(run_gdelt_script)
-    schedule.every().hour.at(":33").do(run_gdelt_script)
-    schedule.every().hour.at(":48").do(run_gdelt_script)
+    schedule.every().hour.at(":00").do(run_gdelt_script)
+    schedule.every().hour.at(":15").do(run_gdelt_script)
+    schedule.every().hour.at(":30").do(run_gdelt_script)
+    schedule.every().hour.at(":45").do(run_gdelt_script)
 
     logger.info("Completed the setup of schedule jobs")
 

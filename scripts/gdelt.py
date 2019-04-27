@@ -151,7 +151,9 @@ def move_csv_files_to_processed_folder():
 
 
 def run():
-    logger.info("Running GDELT script")
+    logger.info(
+        "Running GDELT script at {} minutes away from the next new 15-minute updates".format(
+            (60 - datetime.datetime.now().minute) % 15))
     logger.info('Looking for new 15-minute GDELT updates')
 
     events_list = list()
@@ -174,8 +176,10 @@ def run():
         logger.error('Failed to download any GDELT csv files')
 
     if has_files:
-        logger.info("Processing {} GDELT CSV file(s) ...".format(len(gdelt_csv_files)))
-        for csv_file in gdelt_csv_files:
+        logger.info("Number of GDELT CSV file(s) to process: {}".format(len(gdelt_csv_files)))
+        for i in range(len(gdelt_csv_files)):
+            logger.info("Processing #{} GDELT CSV file(s) ...".format(i))
+            csv_file = gdelt_csv_files[i]
             csv_file_path = config["gdelt"]["in_process_csv_directory"] + '\\' + csv_file
             csv_reader = csv.reader(open(csv_file_path, newline=''), delimiter=' ', quotechar='|')
             num_empty_rows = 0
@@ -237,16 +241,12 @@ def run():
                         rich_preview_dict = get_article_preview(source)
                         headline = rich_preview_dict["headline"]
                         # logger.info headline.encode("utf-8")
+                        description = rich_preview_dict["description"]
 
-                        try:
-                            content = get_article_content(source)
-                            if content is not None:
-                                if len(content) > 10:
-                                    description = content
-                                else:
-                                    description = rich_preview_dict["description"]
-                        except ConnectionError:
-                            description = rich_preview_dict["description"]
+                        content = get_article_content(source)
+                        if content is not None:
+                            if len(content) > 10:
+                                description = content
 
                         # logger.info description.encode("utf-8")
                         logger.info("Checking if article contains any keywords we want...")
@@ -314,7 +314,7 @@ def run():
 
     move_csv_files_to_processed_folder()
 
-    logger.info('Done: looking for next new 15-minute updates')
+    logger.info('Done: {} minutes to the next new 15-minute updates'.format((60 - datetime.datetime.now().minute) % 15))
 
 
 if __name__ == '__main__':
