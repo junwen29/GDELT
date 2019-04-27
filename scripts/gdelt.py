@@ -47,11 +47,11 @@ def get_article_preview(the_url):
 
         article_preview_request = requests.get(the_url, headers=browser_headers, timeout=10, stream=True)
 
-        logger.info('opening page now...')
+        logger.info('Opening page now...')
 
         page = article_preview_request.content
 
-        logger.info('page loaded, parsing page now')
+        logger.info('Page loaded, parsing page now')
 
         soup = BeautifulSoup(page, "html.parser")
         title = soup.find('title').get_text()
@@ -65,7 +65,7 @@ def get_article_preview(the_url):
             page_headline = page_headline.replace("\r", "")
             page_headline = page_headline.replace("\n", "")
         else:
-            logger.info("Html missing meta title tag")
+            logger.info("Page Html missing meta title tag")
         # headline = headline.trim()
 
         page_description = None
@@ -75,7 +75,7 @@ def get_article_preview(the_url):
             page_description = page_description.replace("\r", "")
             page_description = page_description.replace("\n", "")
         else:
-            logger.info("Html missing meta description tag")
+            logger.info("Page Html missing meta description tag")
         # description = description.trim()
         # logger.info title.encode("utf-8")
         # logger.info headline.encode("utf-8")
@@ -84,7 +84,7 @@ def get_article_preview(the_url):
         # the_body = soup.find('body').get_text()
         # EventsLogging.info('<body>' + the_body + '</body>')
 
-        logger.info('page parsed')
+        logger.info('Page parsed')
 
         if page_headline is not None:
             return {"headline": page_headline, "description": page_description}
@@ -99,9 +99,9 @@ def chunk_string(string, length):
     return (string[0 + i:length + i] for i in range(0, len(string), length))
 
 
-def get_article_content(the_url):
+def get_article_content(url):
     try:
-        logger.info("Getting article content of " + the_url + " with Goose")
+        logger.info("Getting article content of " + url + " with Goose")
         goose_config = Configuration()
         goose_config.browser_user_agent = 'Mozilla 5.0'
         goose_config.http_timeout = 10  # set http timeout in seconds
@@ -111,15 +111,14 @@ def get_article_content(the_url):
             goose_config.https_proxy = config["proxy"]["https_ip_port"]
 
         g = Goose(goose_config)
-        article = g.extract(url=the_url)
-        print("*** CONTENT ***\n")
-        to_return = article.cleaned_text.replace("\n", " ")
-        for chunk in chunk_string(to_return, 200):
-            print(chunk)
-        return to_return
+        article = g.extract(url=url)
+        logger.debug("Extracted content of article from {}".format(url))
+        content = article.cleaned_text.replace("\n", " ")
+        logger.debug(content)
+
+        return content
     except ValueError as e:
-        logger.error(traceback.format_exc())
-        logger.error(the_url)
+        logging.exception("Error getting article's content from {}".format(url))
         return ""
 
 
@@ -136,21 +135,24 @@ def get_gdelt_csv_files(export_url):
     z.extractall(config["gdelt"]["in_process_csv_directory"])
     csv_files = [f for f in os.listdir(config["gdelt"]["in_process_csv_directory"]) if
                  isfile(join(config["gdelt"]["in_process_csv_directory"], f))]
+    logger.info('Downloaded GDELT export zip file from  {} ... '.format(export_url))
     return csv_files
 
 
 def move_csv_files_to_processed_folder():
+    logger.info("Moving csv files to processed folder")
     src = os.path.abspath(config["gdelt"]["in_process_csv_directory"])
     dst = os.path.abspath(config["gdelt"]["processed_csv_directory"])
     list_of_files = os.listdir(src)
     for f in list_of_files:
         full_path = src + "\\" + f
-        logger.info("Moving files [" + full_path + "] to [" + dst + "]")
         subprocess.Popen("move " + " " + full_path + " " + dst, shell=True)  # move command is os dependent
+        logger.info("Moved files [" + full_path + "] to [" + dst + "]")
 
 
 def run():
-    logger.info('Started: looking for new 15-minute GDELT updates')
+    logger.info("Running GDELT script")
+    logger.info('Looking for new 15-minute GDELT updates')
 
     events_list = list()
 
@@ -172,6 +174,7 @@ def run():
         logger.error('Failed to download any GDELT csv files')
 
     if has_files:
+        logger.info("Processing {} GDELT CSV file(s) ...".format(len(gdelt_csv_files)))
         for csv_file in gdelt_csv_files:
             csv_file_path = config["gdelt"]["in_process_csv_directory"] + '\\' + csv_file
             csv_reader = csv.reader(open(csv_file_path, newline=''), delimiter=' ', quotechar='|')
@@ -281,9 +284,8 @@ def run():
                                                                                      str(lng), category_list,
                                                                                      author_list,
                                                                                      hit_list)
-                        except UnicodeDecodeError as e:
-                            logger.error(traceback.format_exc())
-                            logger.error('UnicodeDecodeError in ' + csv_file + '.')
+                        except UnicodeDecodeError:
+                            logger.exception('UnicodeDecodeError in ' + csv_file + '.')
                             logger.error(row)
                             num_error_rows += num_error_rows
                             continue
@@ -292,8 +294,8 @@ def run():
 
                     else:
                         num_empty_rows += 1
-            except UnicodeDecodeError as e:
-                logger.error(traceback.format_exc())
+            except UnicodeDecodeError:
+                logger.exception('UnicodeDecodeError in ' + csv_file + '.')
                 logger.error(csv_file)
 
             logger.info('#### Summary of {} ###'.format(csv_file))
