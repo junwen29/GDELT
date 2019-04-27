@@ -117,7 +117,7 @@ def get_article_content(url):
         logger.debug(content)
 
         return content
-    except ValueError as e:
+    except Exception as e:
         logging.exception("Error getting article's content from {}".format(url))
         return ""
 
@@ -237,12 +237,16 @@ def run():
                         rich_preview_dict = get_article_preview(source)
                         headline = rich_preview_dict["headline"]
                         # logger.info headline.encode("utf-8")
-                        description = rich_preview_dict["description"]
 
-                        content = get_article_content(source)
-                        if content is not None:
-                            if len(content) > 10:
-                                description = content
+                        try:
+                            content = get_article_content(source)
+                            if content is not None:
+                                if len(content) > 10:
+                                    description = content
+                                else:
+                                    description = rich_preview_dict["description"]
+                        except ConnectionError:
+                            description = rich_preview_dict["description"]
 
                         # logger.info description.encode("utf-8")
                         logger.info("Checking if article contains any keywords we want...")
