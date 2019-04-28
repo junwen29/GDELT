@@ -42,7 +42,12 @@ def get_article_preview(url):
 
         if config["proxy"]["enabled"].lower() == "true":
             proxy_handler = urllib.request.ProxyHandler(
-                {"http": config["proxy"]["http_ip_port"], "https": config["proxy"]["https_ip_port"]})
+                {
+                    "http": config["proxy"]["http_ip_port"],
+                    "https": config["proxy"]["https_ip_port"]
+                }
+            )
+            logger.info("Added proxy handler")
             opener = urllib.request.build_opener(proxy_handler)
             urllib.request.install_opener(opener)
 
@@ -347,6 +352,11 @@ def run():
             except Exception:
                 logger.exception('Exception in ' + csv_file + '.')
                 logger.error(csv_file)
+                continue
+
+            events_utils.get_xml_tree(events_list)
+            events_utils.get_json(events_list)
+            # EventsCSV = events_utils.get_csv(events_list)
 
             logger.info('\n\n#### Summary of #{} {} ###'.format(i, csv_file))
             logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
@@ -354,10 +364,6 @@ def run():
             logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))
             logger.info('Number of erroneous urls in {} = {}'.format(csv_file, len(erroneous_urls)))
             logger.info('Erroneous urls:  {}\n'.format(erroneous_urls))
-
-            EventsXML = events_utils.get_xml_tree(events_list)
-            EventsJSON = events_utils.get_json(events_list)
-            # EventsCSV = events_utils.get_csv(events_list)
 
     move_csv_files_to_processed_folder()
 

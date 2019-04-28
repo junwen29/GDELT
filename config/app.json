@@ -43,5 +43,8 @@
             "operation", "sensitive", "target", "undetected"
         ]
 
+    },
+    "gdacs": {
+        "rss_24h_feed_url": "http://www.gdacs.org/xml/rss_24h.xml"
     }
 }
