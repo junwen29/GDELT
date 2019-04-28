@@ -5,9 +5,6 @@ import json
 import logging
 import time
 import xml.etree.ElementTree as ElementTree
-import os
-
-from numpy.core import unicode
 from xml.dom import minidom
 
 from utils import config_utils
@@ -15,7 +12,8 @@ from utils import config_utils
 logger = logging.getLogger("Utils")
 
 
-def generate_event(title, content, source, created_datetime, country, lat, lng, category_list, author_list, hit_list=None):
+def generate_event(title, content, source, created_datetime, country, lat, lng, category_list, author_list,
+                   hit_list=None):
     event = {
         "title": title,
         "content": content,
@@ -174,115 +172,11 @@ def get_json(list_of_events):
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 
 
+# TODO to deprecate
 class EventsParser(object):
-
-    def indent(self, elem, level=0):
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                self.indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
-
-    def get_tree(self, list_of_events):
-
-        logger.info("GENERATING TREE...")
-
-        root_element = ElementTree.Element('ns2:opsdashboard')
-        root_element.set("xmlns:ns2", "http://www.asd.qwe.rt/sdf")
-
-        routing_info = ElementTree.SubElement(root_element, 'routinginfo')
-        sender = ElementTree.SubElement(routing_info, 'sender')
-        sender.text = 'OA_FS_SENDER'
-
-        recipient = ElementTree.SubElement(routing_info, 'recipient')
-        recipient.text = 'FN_FS_Receiver_1'
-
-        priority = ElementTree.SubElement(routing_info, 'priority')
-        priority.text = 'normal'
-
-        template = ElementTree.SubElement(routing_info, 'template')
-        template.text = 'Events.xsd'
-
-        # checksum = ET.SubElement(root_element, 'checksum')
-
-        ts = time.time()
-        created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-        timestamp = ElementTree.SubElement(root_element, 'timestamp')
-        timestamp.text = created_datetime
-
-        count = ElementTree.SubElement(root_element, 'count')
-        count.text = str(len(list_of_events))
-
-        keywords = ElementTree.SubElement(root_element, 'keywords')
-        keyword = ElementTree.SubElement(keywords, 'keyword')
-        keyword.text = '*'
-
-        events = ElementTree.SubElement(root_element, 'events')
-        for event_object in list_of_events:
-            event_node = ElementTree.SubElement(events, 'event')
-
-            title = ElementTree.SubElement(event_node, 'title')
-            title.text = event_object["title"]
-
-            the_content = " "
-            if len(event_object["content"]) > 0:
-                the_content = event_object["content"]
-            content = ElementTree.SubElement(event_node, 'content')
-            content.text = the_content
-
-            if event_object["hit_list"] is not None:
-                keywords_of_event = ElementTree.SubElement(event_node, 'keywords')
-                for word in event_object["hit_list"]:
-                    keyword_of_event = ElementTree.SubElement(keywords_of_event, 'keyword')
-                    keyword_of_event.text = word
-
-            country = ElementTree.SubElement(event_node, 'country')
-            country.text = event_object["country"]
-
-            lat = ElementTree.SubElement(event_node, 'lat')
-            lat.text = event_object["lat"]
-
-            lng = ElementTree.SubElement(event_node, 'lng')
-            lng.text = event_object["lng"]
-
-            source = ElementTree.SubElement(event_node, 'source')
-            source.text = event_object["source"]
-            created_datetime = ElementTree.SubElement(event_node, 'created_datetime')
-            created_datetime.text = event_object["created_datetime"]
-
-            categories = ElementTree.SubElement(event_node, 'categories')
-            for category_object in event_object["categories"]:
-                category_node = ElementTree.SubElement(categories, 'category')
-                category_node.text = category_object["category"]
-
-            authors = ElementTree.SubElement(event_node, 'authors')
-            for author_object in event_object["authors"]:
-                author_node = ElementTree.SubElement(authors, 'author')
-                author_node.text = author_object["author"]
-
-        self.indent(root_element)
-        tree = ElementTree.ElementTree(root_element)
-        # ET.dump(tree)
-        ts = time.time()
-        created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
-        with open('config/app.json') as json_config_file:
-            config = json.load(json_config_file)
-        tree.write(config["app"]["xml_directory"] + "\\" + created_datetime + "_for_ib.xml", xml_declaration=True,
-                   encoding='utf-8', method="html")
-
-        logger.info("DONE: GENERATING TREE...")
-
-    '''
+    """
     THIS GENERATES MACHINE-READABLE CSV, NOT BASE64 CSV!
-    '''
+    """
 
     @staticmethod
     def get_csv(list_of_events):
