@@ -12,14 +12,14 @@
         "es_index_name": "events",
         "xml_directory": "..\\GDELT\\data\\xml",
         "json_directory": "..\\GDELT\\data\\json",
-        "ib_directory": "..\\GDELT\\data\\ib"
+        "ib_directory": "..\\GDELT\\data\\ib",
+        "data_directory":  "..\\GDELT\\data"
     },
     "gdelt": {
-        "is_delta_crawl": false,
+        "is_delta_crawl": true,
         "max_csv_urls_to_crawl": 20,
         "master_file_list_url": "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
         "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
-        "csv_directory":  "..\\GDELT\\data",
         "processed_csv_directory": "..\\GDELT\\data\\processed_csv",
         "in_process_csv_directory": "..\\GDELT\\data\\in_process_csv",
         "browser": {
@@ -27,7 +27,7 @@
                 "User-Agent": "Mozilla/5.0 (Windows NT 5.1; rv:10.0.1) Gecko/20100101 Firefox/10.0.1",
                 "Accept": "*/*"
             },
-            "time_out": 20
+            "time_out": 30
         },
         "event_base_codes_we_want": ["042", "043", "044", "045", "046", "057", "064", "145"],
         "countries_we_want": ["SN", "MY", "BX", "ID", "RP", "IN", "TH", "VM", "HK", "CH", "BM", "CB", "LA", "TW",

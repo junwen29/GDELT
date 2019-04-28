@@ -40,6 +40,10 @@ loggers:
       level: DEBUG
       handlers: [console, info_handler, error_handler]
       propagate: no
+  Utils:
+    level: DEBUG
+    handlers: [console, info_handler, error_handler]
+    propagate: no
 
 root:
   level: DEBUG

@@ -7,7 +7,7 @@ import time
 import schedule
 import yaml
 
-import config_utils
+from utils import config_utils
 from scripts import gdelt
 
 logger = logging.getLogger('App')
@@ -77,8 +77,8 @@ def setup_logging(default_path="./config/logging.yml",
 
 def setup_directories():
     config = config_utils.get_app_config()
-    if not os.path.exists(config["gdelt"]["csv_directory"]):
-        os.makedirs(config["gdelt"]["csv_directory"])
+    if not os.path.exists(config["app"]["data_directory"]):
+        os.makedirs(config["app"]["data_directory"])
 
     if not os.path.exists(config["logging"]["log_directory"]):
         os.makedirs(config["logging"]["log_directory"])
@@ -88,6 +88,15 @@ def setup_directories():
 
     if not os.path.exists(config["gdelt"]["processed_csv_directory"]):
         os.makedirs(config["gdelt"]["processed_csv_directory"])
+
+    if not os.path.exists(config["app"]["json_directory"]):
+        os.makedirs(config["app"]["json_directory"])
+
+    if not os.path.exists(config["app"]["ib_directory"]):
+        os.makedirs(config["app"]["ib_directory"])
+
+    if not os.path.exists(config["app"]["xml_directory"]):
+        os.makedirs(config["app"]["xml_directory"])
 
 
 def run_gdelt_script():

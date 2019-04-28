@@ -15,8 +15,7 @@ from bs4 import BeautifulSoup
 from goose3 import Goose
 
 import App
-import config_utils
-import events_utils
+from utils import config_utils, events_utils
 from gdelt_countries_mapping import countries_mapping
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
@@ -174,7 +173,7 @@ def move_csv_files_to_processed_folder():
     for f in list_of_files:
         full_path = src + "\\" + f
         subprocess.Popen("move " + " " + full_path + " " + dst, shell=True)  # move command is os dependent
-        logger.info("Moved files [" + full_path + "] to [" + dst + "]")
+        logger.info("Moved file [" + full_path + "] to [" + dst + "]")
 
 
 def run():
@@ -213,7 +212,7 @@ def run():
         has_files = True
         logger.info(
             'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files,
-                                                                                 config["gdelt"]["csv_directory"]))
+                                                                                 config["gdelt"]["in_process_csv_directory"]))
     else:
         logger.error('Failed to download any GDELT csv files')
 
@@ -319,18 +318,21 @@ def run():
                                 event_type = "0" + event_type
                             event_str = event_codes_mapping[event_type]
                             category_list.append({"category": event_str})
-                            logger.info('Event category = {}'.format(event_str))
+                            logger.debug('Event category = {}'.format(event_str))
                             author_list = list()
                             author_list.append({"author": "OPEN-SOURCE INTERNET"})
-                            event_object = events_utils.EventsParser.generate_events(headline,
-                                                                                     description, source,
-                                                                                     created_datetime,
-                                                                                     countries_mapping[
-                                                                                         country_code],
-                                                                                     str(lat),
-                                                                                     str(lng), category_list,
-                                                                                     author_list,
-                                                                                     hit_list)
+
+                            event_object = events_utils.generate_event(
+                                headline,
+                                description, source,
+                                created_datetime,
+                                countries_mapping[country_code],
+                                str(lat),
+                                str(lng),
+                                category_list,
+                                author_list,
+                                hit_list
+                            )
 
                             events_list.append(event_object)
                             logger.info('Completed building event from article')
@@ -346,16 +348,16 @@ def run():
                 logger.exception('Exception in ' + csv_file + '.')
                 logger.error(csv_file)
 
-            logger.info('#### Summary of {} ###'.format(csv_file))
+            logger.info('\n\n#### Summary of #{} {} ###'.format(i, csv_file))
             logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
             logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
-            logger.info('Number of empty rows in {} = {}\n'.format(csv_file, num_empty_rows))
+            logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))
             logger.info('Number of erroneous urls in {} = {}'.format(csv_file, len(erroneous_urls)))
-            logger.info('Erroneous urls:  {}'.format(erroneous_urls))
+            logger.info('Erroneous urls:  {}\n'.format(erroneous_urls))
 
-            EventsXML = events_utils.EventsParser().get_tree(events_list)
-            EventsJSON = events_utils.EventsParser().get_json(events_list)
-            EventsCSV = events_utils.EventsParser().get_csv(events_list)
+            EventsXML = events_utils.get_xml_tree(events_list)
+            EventsJSON = events_utils.get_json(events_list)
+            # EventsCSV = events_utils.get_csv(events_list)
 
     move_csv_files_to_processed_folder()
 
