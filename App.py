@@ -8,7 +8,7 @@ import schedule
 import yaml
 
 from utils import config_utils
-from scripts import gdelt
+from scripts import gdelt, gdacs
 
 logger = logging.getLogger('App')
 
@@ -20,10 +20,18 @@ def main():
     logger.info("Completed the setup of directories & logging")
 
     logger.info("Setting up schedule jobs ...")
+
     schedule.every().hour.at(":00").do(run_gdelt_script)
+    schedule.every().hour.at(":00").do(run_gdacs_script)
+
     schedule.every().hour.at(":15").do(run_gdelt_script)
+    schedule.every().hour.at(":15").do(run_gdacs_script)
+
     schedule.every().hour.at(":30").do(run_gdelt_script)
+    schedule.every().hour.at(":30").do(run_gdacs_script)
+
     schedule.every().hour.at(":45").do(run_gdelt_script)
+    schedule.every().hour.at(":45").do(run_gdacs_script)
 
     logger.info("Completed the setup of schedule jobs")
 
@@ -31,6 +39,7 @@ def main():
         logger.debug("Waiting to run pending schedules ...")
         schedule.run_pending()
         time.sleep(1)
+        logger.debug("Next run is at {}".format(schedule.next_run()))
 
 
 def setup_logging(default_path="./config/logging.yml",
@@ -100,9 +109,23 @@ def setup_directories():
 
 
 def run_gdelt_script():
-    logger.info("Running GDELT script at {}".format(datetime.datetime.now()))
+    time_now = datetime.datetime.now()
+    logger.info("Running GDELT script at {}".format(time_now.strftime('%Y-%m-%d %H:%M:%S')))
     gdelt.run()
-    logger.info("Completed running GDELT script at {}".format(datetime.datetime.now()))
+    time_later = datetime.datetime.now()
+    logger.info("Completed running GDELT script at {}".format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
+    time_taken = time_later - time_now
+    logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
+
+
+def run_gdacs_script():
+    time_now = datetime.datetime.now()
+    logger.info("Running GDACS script at {}".format(time_now.strftime('%Y-%m-%d %H:%M:%S')))
+    gdacs.run()
+    time_later = datetime.datetime.now()
+    logger.info("Completed running GDACS script at {}".format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
+    time_taken = time_later - time_now
+    logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
 
 
 if __name__ == '__main__':

@@ -358,7 +358,7 @@ def run():
             events_utils.get_json(events_list)
             # EventsCSV = events_utils.get_csv(events_list)
 
-            logger.info('\n\n#### Summary of #{} {} ###'.format(i, csv_file))
+            logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i+1, csv_file))
             logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
             logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
             logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))

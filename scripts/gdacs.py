@@ -83,7 +83,7 @@ def run():
     logger.info('\n\n#### Summary of GDACS events ###')
     logger.info('Number of disasters from GDACS = {}'.format(len(items)))
     logger.info('Number of events generated from GDACS = {}'.format(len(events_list)))
-    logger.info('Number of erroneous disasters= {}'.format(num_errors))
+    logger.info('Number of erroneous disasters= {}\n'.format(num_errors))
 
 
 if __name__ == '__main__':
