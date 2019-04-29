@@ -18,3 +18,7 @@ This is a simple python app to interface with open sources to bulk index events 
 
 ## IDE
 PyCharm
+
+## Known Issues
+* Error with feedparser.py due to geoRSS
+    * Hotfix is to replace feedparser.py with [this](https://gitlab.com/klevstul/muninn/raw/master/additional_resources/feedparser_hotfix/feedparser.py)
