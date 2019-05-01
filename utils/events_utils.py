@@ -1,9 +1,11 @@
 import base64
 import csv
 import datetime
+import hashlib
 import json
 import logging
 import time
+import uuid
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
 
@@ -159,7 +161,7 @@ def get_json(list_of_events):
         es_json_list.append(new_event_object)
 
         with open(filename, 'a') as outfile:
-            json.dump({"index": {"_index": index_name, "_type": "doc"}}, outfile)
+            json.dump({"index": {"_index": index_name, "_type": "doc", "_id": generate_id(event_object["title"])}}, outfile)
             outfile.write("\n")
             json.dump(new_event_object, outfile)
             outfile.write("\n\n")
@@ -170,6 +172,17 @@ def get_json(list_of_events):
                 the_base64_file.write(encoded.decode('utf-8'))
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
+
+
+def generate_id(text):
+    """
+    always generate the same id from text string
+    :param text: string to hash
+    :return: unique id
+    """
+    hash_object = hashlib.sha256(text.encode())
+    hex_dig = hash_object.hexdigest()
+    return hex_dig
 
 
 # TODO to deprecate

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from os.path import isfile, join
@@ -38,9 +39,15 @@ def run():
                 headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
                 response = requests.post(url, data=data, headers=headers)
                 logger.debug("Response status code = {}".format(response.status_code))
-
-                if response.status_code != 200:
-                    raise Exception('{} Unable to index json file {}'.format(response.status_code, json_file))
+                response_content = json.loads(response.text)
+                logger.debug(response.text)
+                if (response.status_code != 200) or response_content["errors"]:
+                    logger.error(
+                        '{} Unable to index some events in json file {}'.format(response.status_code, json_file))
+                    for j in range(len(response_content["items"])):
+                        item = response_content["items"][j]
+                        if "error" in item["index"].keys():
+                            logger.error(item["index"]["error"])
 
                 logger.info("Completed sending bulk request to ES")
 
