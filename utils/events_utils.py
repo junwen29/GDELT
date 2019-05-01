@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import time
-import uuid
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
 
@@ -88,10 +87,10 @@ def get_xml_tree(list_of_events):
         country.text = event_object["country"]
 
         lat = ElementTree.SubElement(event_node, 'lat')
-        lat.text = event_object["lat"]
+        lat.text = str(event_object["lat"])
 
         lng = ElementTree.SubElement(event_node, 'lng')
-        lng.text = event_object["lng"]
+        lng.text = str(event_object["lng"])
 
         source = ElementTree.SubElement(event_node, 'source')
         source.text = event_object["source"]
@@ -104,9 +103,11 @@ def get_xml_tree(list_of_events):
             category_node.text = category_object["category"]
 
         authors = ElementTree.SubElement(event_node, 'authors')
+        # authors.text = event_object["authors"]
         for author_object in event_object["authors"]:
             author_node = ElementTree.SubElement(authors, 'author')
-            author_node.text = author_object["author"]
+            author_node.text = author_object
+            # author_node.text = author_object["author"]
 
     ts = time.time()
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
@@ -143,25 +144,27 @@ def get_json(list_of_events):
             for c in event_object["hit_list"]:
                 categories.append(c)
 
-        latlng = [[event_object["lat"], event_object["lng"]]]
+        lng_lat = [event_object["lng"], event_object[
+            "lat"]]  # each event should hold only 1 location, create multiple events if the same event is held at other places at the same time
 
         countries_list = list()
         countries_list.append(event_object["country"])
 
         new_event_object = {
             "created_date_time": event_object["created_datetime"],
-            "location": latlng,
+            "location": lng_lat,
             "source": event_object["source"],
             "categories": categories,
             "countries": countries_list,
             "title": event_object["title"],
             "content": event_object["content"],
-            "authors": ["OPEN-SOURCE INTERNET"]
+            "authors": event_object["authors"]
         }
         es_json_list.append(new_event_object)
 
         with open(filename, 'a') as outfile:
-            json.dump({"index": {"_index": index_name, "_type": "doc", "_id": generate_id(event_object["title"])}}, outfile)
+            json.dump({"index": {"_index": index_name, "_type": "_doc", "_id": generate_id(event_object["title"])}},
+                      outfile)
             outfile.write("\n")
             json.dump(new_event_object, outfile)
             outfile.write("\n\n")

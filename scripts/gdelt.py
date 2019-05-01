@@ -4,7 +4,6 @@ import io
 import logging.config
 import os
 import subprocess
-import time
 import urllib
 import urllib.request
 import zipfile
@@ -15,10 +14,10 @@ from bs4 import BeautifulSoup
 from goose3 import Goose
 
 import App
-from utils import config_utils, events_utils
 from gdelt_countries_mapping import countries_mapping
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
+from utils import config_utils, events_utils
 
 config = config_utils.get_app_config()
 
@@ -126,7 +125,7 @@ def get_article_content(url):
         logger.debug(content)
 
         return content
-    except Exception as e:
+    except Exception:
         logging.exception("Error getting article's content from {}".format(url))
         erroneous_urls.append({"url": url, "error": "Unable to get content"})
         return ""
@@ -182,6 +181,8 @@ def move_csv_files_to_processed_folder():
 
 
 def run():
+    time_now = datetime.datetime.now()
+
     logger.info(
         "Running GDELT script at {} minutes away from the next new 15-minute updates".format(
             (60 - datetime.datetime.now().minute) % 15))
@@ -217,7 +218,8 @@ def run():
         has_files = True
         logger.info(
             'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files,
-                                                                                 config["gdelt"]["in_process_csv_directory"]))
+                                                                                 config["gdelt"][
+                                                                                     "in_process_csv_directory"]))
     else:
         logger.error('Failed to download any GDELT csv files')
 
@@ -230,6 +232,7 @@ def run():
             csv_reader = csv.reader(open(csv_file_path, newline='', encoding='utf-8'), delimiter=' ', quotechar='|')
             num_empty_rows = 0
             num_rows = 0
+            num_error_rows = 0
             set_of_urls = set()
 
             try:
@@ -250,8 +253,7 @@ def run():
                             if 9 <= int(event_root_code) <= 13:
                                 continue
                             if int(event_root_code) == 4 or int(event_root_code) == 5 or int(
-                                    event_root_code) == 6 or int(
-                                event_root_code) == 14:
+                                    event_root_code) == 6 or int(event_root_code) == 14:
                                 if event_base_code not in base_codes_we_want:
                                     continue
 
@@ -260,7 +262,6 @@ def run():
                             if country_code not in countries_we_want:
                                 continue
 
-                            event_date = values[headers.index("SQLDATE")]
                             lat = values[headers.index("ActionGeo_Lat")]
                             lng = values[headers.index("ActionGeo_Long")]
 
@@ -282,12 +283,12 @@ def run():
                             is_root_event = values[headers.index("IsRootEvent")]
 
                             logger.info('Start building event from article ...')
-                            ts = time.time()
-                            created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+                            # created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+                            created_datetime = datetime.datetime.strptime(values[headers.index("Day")],
+                                                                          '%Y%m%d').strftime('%Y-%m-%d %H:%M:%S')
 
                             rich_preview_dict = get_article_preview(source)
                             headline = rich_preview_dict["headline"]
-                            # logger.info headline.encode("utf-8")
                             description = rich_preview_dict["description"]
 
                             content = get_article_content(source)
@@ -295,7 +296,6 @@ def run():
                                 if len(content) > 10:
                                     description = content
 
-                            # logger.info description.encode("utf-8")
                             logger.info("Searching article against any keywords we want...")
 
                             hit_list = list()
@@ -325,15 +325,15 @@ def run():
                             category_list.append({"category": event_str})
                             logger.debug('Event category = {}'.format(event_str))
                             author_list = list()
-                            author_list.append({"author": "OPEN-SOURCE INTERNET"})
+                            author_list.append("GDELT")
 
                             event_object = events_utils.generate_event(
                                 headline,
                                 description, source,
                                 created_datetime,
                                 countries_mapping[country_code],
-                                str(lat),
-                                str(lng),
+                                float(lat),
+                                float(lng),
                                 category_list,
                                 author_list,
                                 hit_list
@@ -350,23 +350,28 @@ def run():
                     else:
                         num_empty_rows += 1
             except Exception:
+                num_error_rows += 1
                 logger.exception('Exception in ' + csv_file + '.')
                 logger.error(csv_file)
                 continue
 
-            events_utils.get_xml_tree(events_list)
             events_utils.get_json(events_list)
+            events_utils.get_xml_tree(events_list)
             # EventsCSV = events_utils.get_csv(events_list)
 
-            logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i+1, csv_file))
+            logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i + 1, csv_file))
             logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
             logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
+            logger.info('Number of error rows in {} = {}'.format(csv_file, num_error_rows))
             logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))
             logger.info('Number of erroneous urls in {} = {}'.format(csv_file, len(erroneous_urls)))
             logger.info('Erroneous urls:  {}\n'.format(erroneous_urls))
 
     move_csv_files_to_processed_folder()
 
+    time_later = datetime.datetime.now()
+    time_taken = time_later - time_now
+    logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
     logger.info(
         'Done: {} minutes to the next new 15-minute updates'.format((60 - datetime.datetime.now().minute) % 15))
 

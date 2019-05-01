@@ -1,8 +1,8 @@
 import datetime
 import logging
-import time
 import urllib
 import urllib.request
+
 import feedparser
 
 import App
@@ -59,16 +59,13 @@ def run():
                 event_type = "445"
             source = item["link"]
 
-            ts = time.time()
-            created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-
             category_list = list()
             event_str = event_codes_mapping[event_type]
             category_list.append({"category": event_str})
             author_list = list()
-            author_list.append({"author": "OPEN-SOURCE INTERNET"})
-            event_object = events_utils.generate_event(title, description, source, created_datetime, country, str(lat),
-                                                       str(lng), category_list, author_list)
+            author_list.append({"author": "Global Disaster Alerts & Coordination System (GDAC)"})
+            event_object = events_utils.generate_event(title, description, source, event_date, country, float(lat),
+                                                       float(lng), category_list, author_list)
             logger.info("Completed processing #{} disaster fromm GDACS feed".format(i + 1))
             events_list.append(event_object)
             logger.info('Currently {} event(s) built'.format(len(events_list)))

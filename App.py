@@ -124,8 +124,6 @@ def run_gdacs_script():
     gdacs.run()
     time_later = datetime.datetime.now()
     logger.info("Completed running GDACS script at {}".format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
-    time_taken = time_later - time_now
-    logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
 
 
 if __name__ == '__main__':
