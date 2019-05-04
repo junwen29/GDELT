@@ -9,14 +9,13 @@
         "https_ip_port": "123.123.123.123:80"
     },
     "app": {
-        "es_index_name": "events",
         "xml_directory": "..\\GDELT\\data\\xml",
         "json_directory": "..\\GDELT\\data\\json",
         "ib_directory": "..\\GDELT\\data\\ib",
         "data_directory":  "..\\GDELT\\data"
     },
     "gdelt": {
-        "is_delta_crawl": true,
+        "is_delta_crawl": false,
         "max_csv_urls_to_crawl": 20,
         "master_file_list_url": "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
         "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
@@ -95,6 +94,7 @@
     },
     "elasticsearch": {
         "host": "localhost",
-        "port": 9200
+        "port": 9200,
+        "events_index_name": "geo-events"
     }
 }
