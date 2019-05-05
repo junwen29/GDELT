@@ -15,7 +15,7 @@
         "data_directory":  "..\\GDELT\\data"
     },
     "gdelt": {
-        "is_delta_crawl": false,
+        "is_delta_crawl": true,
         "convert_json_to_csv_files": false,
         "generate_xml_files": false,
         "max_csv_urls_to_crawl": 2,
