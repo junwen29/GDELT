@@ -162,6 +162,7 @@ def get_json(list_of_events):
         }
         es_json_list.append(new_event_object)
 
+        # By default json is the output
         with open(filename, 'a') as outfile:
             json.dump({"index": {"_index": index_name, "_type": "_doc", "_id": generate_id(event_object["title"])}},
                       outfile)
@@ -169,10 +170,11 @@ def get_json(list_of_events):
             json.dump(new_event_object, outfile)
             outfile.write("\n\n")
 
-        with open(ib_filename, 'a') as the_base64_file:
-            with open(filename) as the_file:
-                encoded = base64.b64encode(the_file.read().encode('utf-8'))
-                the_base64_file.write(encoded.decode('utf-8'))
+        if config["gdelt"]["convert_json_to_csv_files"]:
+            with open(ib_filename, 'a') as the_base64_file:
+                with open(filename) as the_file:
+                    encoded = base64.b64encode(the_file.read().encode('utf-8'))
+                    the_base64_file.write(encoded.decode('utf-8'))
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 

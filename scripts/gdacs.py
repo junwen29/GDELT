@@ -74,8 +74,10 @@ def run():
             num_errors += 1
             continue
 
-    events_utils.get_xml_tree(events_list)
     events_utils.get_json(events_list)
+
+    if config["gdelt"]["generate_xml_files"]:
+        events_utils.get_xml_tree(events_list)
 
     logger.info('\n\n#### Summary of GDACS events ###')
     logger.info('Number of disasters from GDACS = {}'.format(len(items)))

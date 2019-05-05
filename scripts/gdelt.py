@@ -355,8 +355,12 @@ def run():
                 logger.error(csv_file)
                 continue
 
+            # Generate json output by default
             events_utils.get_json(events_list)
-            events_utils.get_xml_tree(events_list)
+
+            if config["gdelt"]["generate_xml_files"]:
+                events_utils.get_xml_tree(events_list)
+
             # EventsCSV = events_utils.get_csv(events_list)
 
             logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i + 1, csv_file))
