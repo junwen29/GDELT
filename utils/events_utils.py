@@ -5,7 +5,6 @@ import hashlib
 import json
 import logging
 import time
-import uuid
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
 
@@ -143,7 +142,7 @@ def get_json(list_of_events):
             for c in event_object["hit_list"]:
                 categories.append(c)
 
-        latlng = [[event_object["lat"], event_object["lng"]]]
+        latlng = event_object["lat"] + "," + event_object["lng"]
 
         countries_list = list()
         countries_list.append(event_object["country"])
@@ -161,7 +160,8 @@ def get_json(list_of_events):
         es_json_list.append(new_event_object)
 
         with open(filename, 'a') as outfile:
-            json.dump({"index": {"_index": index_name, "_type": "doc", "_id": generate_id(event_object["title"])}}, outfile)
+            json.dump({"index": {"_index": index_name, "_type": "_doc", "_id": generate_id(event_object["title"])}},
+                      outfile)
             outfile.write("\n")
             json.dump(new_event_object, outfile)
             outfile.write("\n\n")
@@ -218,14 +218,17 @@ class EventsParser(object):
             for w in event_object["hit_list"]:
                 categories.append(w)
 
-            latlng = [event_object["lat"], event_object["lng"]]
+            latlng = [int(event_object["lat"]), int(event_object["lng"])]
 
-            new_event_object = {"created_date_time": event_object["created_datetime"], "location": latlng,
-                                "source": event_object["source"],
-                                "categories": categories, "countries": event_object["country"],
-                                "title": event_object["title"].encode('utf8'),
-                                "content": event_object["content"].encode('utf8'),
-                                "authors": ["OPEN-SOURCE INTERNET"]}
+            new_event_object = {
+                "created_date_time": event_object["created_datetime"],
+                "location": latlng,
+                "source": event_object["source"],
+                "categories": categories, "countries": event_object["country"],
+                "title": event_object["title"].encode('utf8'),
+                "content": event_object["content"].encode('utf8'),
+                "authors": ["OPEN-SOURCE INTERNET"]
+            }
 
             with open(filename, 'a') as outfile:
                 fieldnames = ["created_date_time", "location", "source", "categories", "countries", "title", "content",
