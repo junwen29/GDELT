@@ -46,5 +46,9 @@
     },
     "gdacs": {
         "rss_24h_feed_url": "http://www.gdacs.org/xml/rss_24h.xml"
+    },
+    "elasticsearch": {
+        "host": "localhost",
+        "port": 9200
     }
 }
