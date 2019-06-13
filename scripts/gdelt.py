@@ -8,11 +8,14 @@ import time
 import urllib
 import urllib.request
 import zipfile
+import re
 from os.path import isfile, join
 
 import requests
 from bs4 import BeautifulSoup
 from goose3 import Goose
+import datefinder
+from datetime import timedelta
 
 import App
 from utils import config_utils, events_utils
@@ -29,6 +32,8 @@ countries_we_want = config["gdelt"]["countries_we_want"]
 keywords_we_want = config["gdelt"]["keywords_we_want"]
 is_delta_crawl = config["gdelt"]["is_delta_crawl"]
 max_urls_to_crawl = config["gdelt"]["max_csv_urls_to_crawl"]
+month_abbreviations = config["gdelt"]["month_abbreviations"]
+months_of_year = config["gdelt"]["months_of_year"]
 
 logger = logging.getLogger("GDELT")
 
@@ -61,10 +66,10 @@ def get_article_preview(url):
 
         soup = BeautifulSoup(page, "html.parser")
         title = soup.find('title').get_text()
-        # title = title.replace("\r","")
-        # title = title.replace("\n","")
-        # title = title.trim()
+        title = title.replace("\r","")
+        title = title.replace("\n","")
         title_tag = soup.find("meta", property="og:title")
+
         page_headline = None
         if title_tag is not None:
             page_headline = title_tag.get("content")
@@ -84,6 +89,7 @@ def get_article_preview(url):
                 page_description = page_description.replace("\n", "")
         else:
             logger.info("Page Html missing meta description tag")
+
         # description = description.trim()
         # logger.info title.encode("utf-8")
         # logger.info headline.encode("utf-8")
@@ -123,14 +129,54 @@ def get_article_content(url):
         article = g.extract(url=url)
         logger.debug("Extracted content of article from {}".format(url))
         content = article.cleaned_text.replace("\n", " ")
+        cleaned_text = article.cleaned_text
+        paragraphs_list = list()
+        paragraphs_list = paragraphs_list + cleaned_text.split('\n')
+
         logger.debug(content)
 
-        return content
+        return {"content": content, "paragraphs_list": paragraphs_list}
     except Exception as e:
         logging.exception("Error getting article's content from {}".format(url))
         erroneous_urls.append({"url": url, "error": "Unable to get content"})
-        return ""
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
 
+#Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
+def extract_probable_event_dates (content, article_timestamp):
+    month_keywords = months_of_year + month_abbreviations
+    probable_event_date_set = set()
+    article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
+    article_datetime_plus_one_year = article_datetime + timedelta(days=365)
+    article_datetime_string = article_datetime.strftime('%Y%m%d')
+    probable_event_date_set.add(article_datetime_string)
+    extracted_dates = datefinder.find_dates(content,True,False,False)
+    for date in extracted_dates:
+        try:
+            has_month_reference = False
+            is_month_only = False
+            for keyword in month_keywords:
+                if re.search(r'\b' + keyword + r'\b', date[1]):
+                    has_month_reference = True
+                    if keyword == date[1]:
+                        is_month_only = True
+                    if "by " + keyword == date[1].lower():
+                        is_month_only = True
+                    if "of " + keyword == date[1].lower():
+                        is_month_only = True
+                    if keyword + " by"  == date[1].lower():
+                        is_month_only = True
+                    if keyword + " of" == date[1].lower():
+                        is_month_only = True
+            if (date[0] > article_datetime) and (date[0] < article_datetime_plus_one_year) \
+                    and has_month_reference and not is_month_only:
+                adjusted_date = date[0]
+                extracted_date_string = adjusted_date.strftime('%Y%m%d')
+                probable_event_date_set.add(extracted_date_string)
+        except Exception as e:
+            logger.exception("Failed to compare dates")
+            continue
+    return list(probable_event_date_set)
 
 def get_gdelt_export_url(url):
     r = requests.get(url, headers=browser_headers, timeout=10)
@@ -177,9 +223,14 @@ def move_csv_files_to_processed_folder():
     list_of_files = os.listdir(src)
     for f in list_of_files:
         full_path = src + "\\" + f
-        subprocess.Popen("move " + " " + full_path + " " + dst, shell=True)  # move command is os dependent
+        subprocess.Popen("move " + "\"" + full_path + "\" \"" + dst + "\"", shell=True)  # move command is os dependent
         logger.info("Moved file [" + full_path + "] to [" + dst + "]")
 
+def find_keyword(keyword, content):
+    if re.search(keyword, content.lower()):
+        return True
+    else:
+        return False
 
 def run():
     logger.info(
@@ -238,22 +289,13 @@ def run():
                         try:
                             num_rows += 1
                             value = ''.join(row)
-                            # logger.info(value)
 
                             values = value.split("\t")
 
-                            event_root_code = values[headers.index("EventRootCode")]
                             event_base_code = values[headers.index("EventBaseCode")]
 
-                            if int(event_root_code) < 4:
+                            if event_base_code not in base_codes_we_want:
                                 continue
-                            if 9 <= int(event_root_code) <= 13:
-                                continue
-                            if int(event_root_code) == 4 or int(event_root_code) == 5 or int(
-                                    event_root_code) == 6 or int(
-                                event_root_code) == 14:
-                                if event_base_code not in base_codes_we_want:
-                                    continue
 
                             country_code = values[headers.index("ActionGeo_CountryCode")]
 
@@ -290,7 +332,10 @@ def run():
                             # logger.info headline.encode("utf-8")
                             description = rich_preview_dict["description"]
 
-                            content = get_article_content(source)
+
+                            parsed_article = get_article_content(source)
+                            content = parsed_article["content"]
+                            content_paragraphs_list = parsed_article["paragraphs_list"]
                             if content is not None:
                                 if len(content) > 10:
                                     description = content
@@ -298,17 +343,17 @@ def run():
                             # logger.info description.encode("utf-8")
                             logger.info("Searching article against any keywords we want...")
 
-                            hit_list = list()
+                            hit_set = set()
                             if headline is not None and description is not None:
                                 discard = True
                                 for keyword in keywords_we_want:
-                                    if keyword in headline.lower():
+                                    if find_keyword(keyword, headline):
                                         logger.debug('[' + keyword + '] is hit in [' + headline + ']')
-                                        hit_list.append(keyword)
+                                        hit_set.add(keyword.replace("\\b",""))
                                         discard = False
-                                    if keyword in description.lower():
+                                    if find_keyword(keyword, description):
                                         logger.debug('[' + keyword + '] is hit in [' + description + ']')
-                                        hit_list.append(keyword)
+                                        hit_set.add(keyword.replace("\\b",""))
                                         discard = False
                                 if discard:
                                     logger.info("Discarding article since no hit in headline or description...")
@@ -316,6 +361,8 @@ def run():
                             else:
                                 continue
                             logger.info("Completed searching article against any keywords we want")
+
+                            probable_event_date_list = extract_probable_event_dates(description,ts)
 
                             category_list = list()
                             event_type = str(event_type)
@@ -329,14 +376,17 @@ def run():
 
                             event_object = events_utils.generate_event(
                                 headline,
-                                description, source,
+                                description,
+                                content_paragraphs_list,
+                                source,
                                 created_datetime,
+                                probable_event_date_list,
                                 countries_mapping[country_code],
                                 str(lat),
                                 str(lng),
                                 category_list,
                                 author_list,
-                                hit_list
+                                list(hit_set)
                             )
 
                             events_list.append(event_object)

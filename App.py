@@ -42,7 +42,7 @@ def main():
         logger.debug("Next run is at {}".format(schedule.next_run()))
 
 
-def setup_logging(default_path="./config/logging.yml",
+def setup_logging(default_path="../config/logging.yml",
                   default_level=logging.INFO,
                   env_key="LOG_CFG"):
     """
