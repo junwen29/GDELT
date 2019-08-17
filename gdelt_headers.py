@@ -1,6 +1,6 @@
 headers = [
     "GLOBALEVENTID",
-    "Day",
+    "SQLDATE",
     "MonthYear",
     "Year",
     "FractionDate",
@@ -59,5 +59,5 @@ headers = [
     "ActionGeo_Long",
     "ActionGeo_FeatureID",
     "DATEADDED",
-    "SOURCEURL"
+    "SOURCEURL",
 ]

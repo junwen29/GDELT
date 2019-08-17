@@ -5,7 +5,7 @@ logger = logging.getLogger('Utils')
 
 
 def get_app_config():
-    app_config_path = 'config/app.json'
+    app_config_path = './config/app.json'
 
     try:
         with open(app_config_path) as json_config_file:

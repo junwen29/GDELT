@@ -13,13 +13,15 @@ from utils import config_utils
 logger = logging.getLogger("Utils")
 
 
-def generate_event(title, content, source, created_datetime, country, lat, lng, category_list, author_list,
+def generate_event(title, content, content_paragraphs_list, source, created_datetime, probable_event_date_list, country, lat, lng, category_list, author_list,
                    hit_list=None):
     event = {
         "title": title,
         "content": content,
         "source": source,
+        "content_paragraphs": content_paragraphs_list,
         "created_datetime": created_datetime,
+        "probable_event_dates" : probable_event_date_list,
         "country": country,
         "lat": lat,
         "lng": lng,
@@ -77,10 +79,22 @@ def get_xml_tree(list_of_events):
         content = ElementTree.SubElement(event_node, 'content')
         content.text = the_content
 
+        if event_object["content_paragraphs"] is not None:
+            keywords_of_event = ElementTree.SubElement(event_node, 'content_paragraphs')
+            for paragraph in event_object["content_paragraphs"]:
+                keyword_of_event = ElementTree.SubElement(keywords_of_event, 'paragraph')
+                keyword_of_event.text = paragraph
+
         if event_object["hit_list"] is not None:
             keywords_of_event = ElementTree.SubElement(event_node, 'keywords')
             for word in event_object["hit_list"]:
                 keyword_of_event = ElementTree.SubElement(keywords_of_event, 'keyword')
+                keyword_of_event.text = word
+
+        if event_object["probable_event_dates"] is not None:
+            keywords_of_event = ElementTree.SubElement(event_node, 'probable_event_dates')
+            for word in event_object["probable_event_dates"]:
+                keyword_of_event = ElementTree.SubElement(keywords_of_event, 'probable_event_date')
                 keyword_of_event.text = word
 
         country = ElementTree.SubElement(event_node, 'country')
@@ -103,11 +117,9 @@ def get_xml_tree(list_of_events):
             category_node.text = category_object["category"]
 
         authors = ElementTree.SubElement(event_node, 'authors')
-        # authors.text = event_object["authors"]
         for author_object in event_object["authors"]:
             author_node = ElementTree.SubElement(authors, 'author')
-            author_node.text = author_object
-            # author_node.text = author_object["author"]
+            author_node.text = author_object["author"]
 
     ts = time.time()
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
@@ -154,10 +166,12 @@ def get_json(list_of_events):
             "created_date_time": event_object["created_datetime"],
             "location": lng_lat,
             "source": event_object["source"],
+            "probable_event_dates": event_object["probable_event_dates"],
             "categories": categories,
             "countries": countries_list,
             "title": event_object["title"],
             "content": event_object["content"],
+            "content_paragraphs": event_object["content_paragraphs"],
             "authors": event_object["authors"]
         }
         es_json_list.append(new_event_object)
