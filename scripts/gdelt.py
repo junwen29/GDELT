@@ -66,8 +66,8 @@ def get_article_preview(url):
 
         soup = BeautifulSoup(page, "html.parser")
         title = soup.find('title').get_text()
-        title = title.replace("\r","")
-        title = title.replace("\n","")
+        title = title.replace("\r", "")
+        title = title.replace("\n", "")
         title_tag = soup.find("meta", property="og:title")
 
         page_headline = None
@@ -142,15 +142,16 @@ def get_article_content(url):
         content = ""
         return {"content": content, "paragraphs_list": list()}
 
-#Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
-def extract_probable_event_dates (content, article_timestamp):
+
+# Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
+def extract_probable_event_dates(content, article_timestamp):
     month_keywords = months_of_year + month_abbreviations
     probable_event_date_set = set()
     article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
     article_datetime_string = article_datetime.strftime('%Y%m%d')
     probable_event_date_set.add(article_datetime_string)
-    extracted_dates = datefinder.find_dates(content,True,False,False)
+    extracted_dates = datefinder.find_dates(content, True, False, False)
     for date in extracted_dates:
         try:
             has_month_reference = False
@@ -164,7 +165,7 @@ def extract_probable_event_dates (content, article_timestamp):
                         is_month_only = True
                     if "of " + keyword == date[1].lower():
                         is_month_only = True
-                    if keyword + " by"  == date[1].lower():
+                    if keyword + " by" == date[1].lower():
                         is_month_only = True
                     if keyword + " of" == date[1].lower():
                         is_month_only = True
@@ -177,6 +178,7 @@ def extract_probable_event_dates (content, article_timestamp):
             logger.exception("Failed to compare dates")
             continue
     return list(probable_event_date_set)
+
 
 def get_gdelt_export_url(url):
     r = requests.get(url, headers=browser_headers, timeout=10)
@@ -226,11 +228,13 @@ def move_csv_files_to_processed_folder():
         subprocess.Popen("move " + "\"" + full_path + "\" \"" + dst + "\"", shell=True)  # move command is os dependent
         logger.info("Moved file [" + full_path + "] to [" + dst + "]")
 
+
 def find_keyword(keyword, content):
     if re.search(keyword, content.lower()):
         return True
     else:
         return False
+
 
 def run():
     logger.info(
@@ -268,7 +272,8 @@ def run():
         has_files = True
         logger.info(
             'Successfully downloaded {} csv files to directory at {} ...'.format(gdelt_csv_files,
-                                                                                 config["gdelt"]["in_process_csv_directory"]))
+                                                                                 config["gdelt"][
+                                                                                     "in_process_csv_directory"]))
     else:
         logger.error('Failed to download any GDELT csv files')
 
@@ -332,7 +337,6 @@ def run():
                             # logger.info headline.encode("utf-8")
                             description = rich_preview_dict["description"]
 
-
                             parsed_article = get_article_content(source)
                             content = parsed_article["content"]
                             content_paragraphs_list = parsed_article["paragraphs_list"]
@@ -349,11 +353,11 @@ def run():
                                 for keyword in keywords_we_want:
                                     if find_keyword(keyword, headline):
                                         logger.debug('[' + keyword + '] is hit in [' + headline + ']')
-                                        hit_set.add(keyword.replace("\\b",""))
+                                        hit_set.add(keyword.replace("\\b", ""))
                                         discard = False
                                     if find_keyword(keyword, description):
                                         logger.debug('[' + keyword + '] is hit in [' + description + ']')
-                                        hit_set.add(keyword.replace("\\b",""))
+                                        hit_set.add(keyword.replace("\\b", ""))
                                         discard = False
                                 if discard:
                                     logger.info("Discarding article since no hit in headline or description...")
@@ -362,7 +366,7 @@ def run():
                                 continue
                             logger.info("Completed searching article against any keywords we want")
 
-                            probable_event_date_list = extract_probable_event_dates(description,ts)
+                            probable_event_date_list = extract_probable_event_dates(description, ts)
 
                             category_list = list()
                             event_type = str(event_type)
@@ -408,7 +412,7 @@ def run():
             events_utils.get_json(events_list)
             # EventsCSV = events_utils.get_csv(events_list)
 
-            logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i+1, csv_file))
+            logger.info('\n\n#### Summary of GDELT #{} {} ###'.format(i + 1, csv_file))
             logger.info('Number of events generated from {} = {}'.format(csv_file, len(events_list)))
             logger.info('Number of rows in {} = {}'.format(csv_file, num_rows))
             logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))
