@@ -18,7 +18,7 @@
         "is_delta_crawl": false,
         "convert_json_to_csv_files": false,
         "generate_xml_files": false,
-        "max_csv_urls_to_crawl": 2,
+        "max_csv_urls_to_crawl": 20,
         "master_file_list_url": "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
         "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
         "processed_csv_directory": "..\\GDELT\\data\\processed_csv",

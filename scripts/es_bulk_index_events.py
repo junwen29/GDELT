@@ -48,6 +48,8 @@ def run():
                         item = response_content["items"][j]
                         if "error" in item["index"].keys():
                             logger.error(item["index"]["error"])
+                else:
+                    os.remove(json_file_path)
 
                 logger.info("Completed sending bulk request to ES")
 

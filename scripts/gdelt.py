@@ -149,7 +149,7 @@ def extract_probable_event_dates(content, article_timestamp):
     probable_event_date_set = set()
     article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
-    article_datetime_string = article_datetime.strftime('%Y%m%d')
+    article_datetime_string = article_datetime.strftime('%Y-%m-%d %H:%M:%S')
     probable_event_date_set.add(article_datetime_string)
     extracted_dates = datefinder.find_dates(content, True, False, False)
     for date in extracted_dates:
@@ -172,7 +172,7 @@ def extract_probable_event_dates(content, article_timestamp):
             if (date[0] > article_datetime) and (date[0] < article_datetime_plus_one_year) \
                     and has_month_reference and not is_month_only:
                 adjusted_date = date[0]
-                extracted_date_string = adjusted_date.strftime('%Y%m%d')
+                extracted_date_string = adjusted_date.strftime('%Y-%m-%d %H:%M:%S')
                 probable_event_date_set.add(extracted_date_string)
         except Exception as e:
             logger.exception("Failed to compare dates")
