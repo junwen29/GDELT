@@ -15,9 +15,9 @@
         "data_directory":  "..\\GDELT\\data"
     },
     "gdelt": {
-        "is_delta_crawl": false,
-        "convert_json_to_csv_files": false,
-        "generate_xml_files": false,
+        "is_delta_crawl": true,
+        "convert_json_to_csv_files": true,
+        "generate_xml_files": true,
         "max_csv_urls_to_crawl": 20,
         "master_file_list_url": "http://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
         "last_update_url": "http://data.gdeltproject.org/gdeltv2/lastupdate.txt",
@@ -33,6 +33,7 @@
         "event_base_codes_we_want": ["042", "043", "044", "045", "046", "057", "064","140", "141", "142", "143", "144", "145",
             "150", "151", "152", "153", "154", "155", "171", "172", "173", "174", "175", "176", "180", "181", "182", "183", "184", "185",
             "186", "190", "191", "192", "193", "194", "195", "196", "200", "201", "202", "203", "204"],
+        "event_codes_to_exclude": ["1821"],
         "countries_we_want": ["SN", "MY", "BX", "ID", "RP", "IN", "TH", "VM", "HK", "CH", "BM", "CB", "LA", "TW",
             "KN", "KS", "JA", "TT", "MC", "AS", "AE"],
         "keywords_we_want": [
@@ -52,7 +53,7 @@
             "\\bsecurity agency\\b", "\\bsecurity agencies\\b", "\\bnational threat level", "\\bredcon\\b",
             "\\briot", "\\bprotest", "\\bdemostrator", "\\bministry of state security\\b", "\\bdensus 88\\b",
             "\\bbadan intelijen negara\\b", "\\bmalaysian special branch\\b", "\\bmalaysian external intelligence organi",
-            "\\travel advisory\\b","\\travel advisories\\b", "\\bsecurity lockdown\\b", "\\bstate of emergency\\b",
+            "\\btravel advisory\\b","\\btravel advisories\\b", "\\bsecurity lockdown\\b", "\\bstate of emergency\\b",
             "\\bhigh security area\\b","\\bhack", "\\bcyber attack", "\\bdos attack", "\\bddos attack"
         ],
         "month_abbreviations": ["Jan","Feb","Mar","Apr","Jun","Jul","Aug","Sept", "Sep","Oct", "Nov","Dec"],

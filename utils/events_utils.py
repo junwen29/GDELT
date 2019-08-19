@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import time
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
@@ -101,10 +102,10 @@ def get_xml_tree(list_of_events):
         country.text = event_object["country"]
 
         lat = ElementTree.SubElement(event_node, 'lat')
-        lat.text = str(event_object["lat"])
+        lat.text = event_object["lat"]
 
         lng = ElementTree.SubElement(event_node, 'lng')
-        lng.text = str(event_object["lng"])
+        lng.text = event_object["lng"]
 
         source = ElementTree.SubElement(event_node, 'source')
         source.text = event_object["source"]
@@ -125,7 +126,7 @@ def get_xml_tree(list_of_events):
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
 
     xml_str = minidom.parseString(ElementTree.tostring(root_element)).toprettyxml()
-    with open(config["app"]["xml_directory"] + "\\" + created_datetime + "_for_ib.xml", "wb") as f:
+    with open(config["app"]["xml_directory"] + os.sep + created_datetime + "_for_ib.xml", "wb") as f:
         f.write(xml_str.encode('utf-8'))
 
     logger.info("DONE: GENERATING TREE ...")
@@ -140,8 +141,8 @@ def get_json(list_of_events):
     config = config_utils.get_app_config()
     index_name = config["elasticsearch"]["events_index_name"]
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
-    filename = config["app"]["json_directory"] + "\\" + created_datetime + "_for_es.json"
-    ib_filename = config["app"]["ib_directory"] + "\\" + created_datetime + "_for_ib.csv"
+    filename = config["app"]["json_directory"] + os.sep + created_datetime + "_for_es.json"
+    ib_filename = config["app"]["ib_directory"] + os.sep + created_datetime + "_for_ib.csv"
 
     logger.info(filename)
     logger.info(ib_filename)  # csv file to carry the json across the ib
@@ -157,7 +158,8 @@ def get_json(list_of_events):
                 categories.append(c)
 
         lng_lat = [event_object["lng"], event_object[
-            "lat"]]  # each event should hold only 1 location, create multiple events if the same event is held at other places at the same time
+            "lat"]]  # each event should hold only 1 location, create multiple events if the same event is held at
+        # other places at the same time
 
         countries_list = list()
         countries_list.append(event_object["country"])
@@ -184,11 +186,10 @@ def get_json(list_of_events):
             json.dump(new_event_object, outfile)
             outfile.write("\n\n")
 
-        if config["gdelt"]["convert_json_to_csv_files"]:
-            with open(ib_filename, 'a') as the_base64_file:
-                with open(filename) as the_file:
-                    encoded = base64.b64encode(the_file.read().encode('utf-8'))
-                    the_base64_file.write(encoded.decode('utf-8'))
+        with open(ib_filename, 'a') as the_base64_file:
+            with open(filename) as the_file:
+                encoded = base64.b64encode(the_file.read().encode('utf-8'))
+                the_base64_file.write(encoded.decode('utf-8'))
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 

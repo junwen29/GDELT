@@ -11,38 +11,17 @@ from utils import config_utils
 from scripts import gdelt, gdacs
 
 logger = logging.getLogger('App')
-default_logging_path = "." + os.sep + "config" + os.sep + "logging.yml"
+
 
 def main():
     setup_directories()
     setup_logging()
-
-    logger.info("Completed the setup of directories & logging")
-
-    logger.info("Setting up schedule jobs ...")
-
-    schedule.every().hour.at(":00").do(run_gdelt_script)
-    schedule.every().hour.at(":00").do(run_gdacs_script)
-
-    schedule.every().hour.at(":15").do(run_gdelt_script)
-    schedule.every().hour.at(":15").do(run_gdacs_script)
-
-    schedule.every().hour.at(":30").do(run_gdelt_script)
-    schedule.every().hour.at(":30").do(run_gdacs_script)
-
-    schedule.every().hour.at(":45").do(run_gdelt_script)
-    schedule.every().hour.at(":45").do(run_gdacs_script)
-
-    logger.info("Completed the setup of schedule jobs")
-
-    while 1:
-        logger.debug("Waiting to run pending schedules ...")
-        schedule.run_pending()
-        time.sleep(1)
-        logger.debug("Next run is at {}".format(schedule.next_run()))
+    run_gdelt_script()
+    run_gdacs_script()
 
 
-def setup_logging(default_path=default_logging_path,
+
+def setup_logging(default_path="./config/logging.yml",
                   default_level=logging.INFO,
                   env_key="LOG_CFG"):
     """
@@ -121,7 +100,6 @@ def setup_directories():
         xml_directory.replace('\\', os.sep).replace('/', os.sep)
         os.makedirs(xml_directory)
 
-
 def run_gdelt_script():
     time_now = datetime.datetime.now()
     logger.info("Running GDELT script at {}".format(time_now.strftime('%Y-%m-%d %H:%M:%S')))
@@ -138,6 +116,8 @@ def run_gdacs_script():
     gdacs.run()
     time_later = datetime.datetime.now()
     logger.info("Completed running GDACS script at {}".format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
+    time_taken = time_later - time_now
+    logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
 
 
 if __name__ == '__main__':
