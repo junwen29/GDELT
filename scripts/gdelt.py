@@ -148,6 +148,7 @@ def extract_probable_event_dates (content, article_timestamp):
     probable_event_date_set = set()
     article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
+    article_datetime_minus_three_days = article_datetime - timedelta(days=3)
 
     extracted_dates = datefinder.find_dates(content,True,False,False)
     for date in extracted_dates:
@@ -167,7 +168,7 @@ def extract_probable_event_dates (content, article_timestamp):
                         is_month_only = True
                     if keyword + " of" == date[1].lower():
                         is_month_only = True
-            if (date[0] > article_datetime) and (date[0] < article_datetime_plus_one_year) \
+            if (date[0] >= article_datetime_minus_three_days) and (date[0] < article_datetime_plus_one_year) \
                     and has_month_reference and not is_month_only:
                 adjusted_date = date[0]
                 extracted_date_string = adjusted_date.strftime('%Y%m%d')
