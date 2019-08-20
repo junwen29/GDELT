@@ -49,6 +49,8 @@ def run():
                 logger.debug(event_date)
                 title = item["title"]
                 description = item["description"]
+                content_paragraph_list = list()
+                content_paragraph_list.append(description)
                 lat = item["geo_lat"]
                 lng = item["geo_long"]
                 country = item["gdacs_country"]
@@ -61,15 +63,16 @@ def run():
 
                 ts = time.time()
                 created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-
+                probable_event_date_list = list()
+                probable_event_date_list.append(datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d'))
                 category_list = list()
                 event_str = event_codes_mapping[event_type]
                 category_list.append({"category": event_str})
                 author_list = list()
-                author_list.append({"author": "OPEN-SOURCE INTERNET"})
-                event_object = events_utils.generate_event(title, description, source, created_datetime, country,
-                                                           str(lat),
-                                                           str(lng), category_list, author_list)
+                author_list.append("Global Disaster Alerts & Coordination System (GDAC)")
+                event_object = events_utils.generate_event(title, description, content_paragraph_list, source,
+                                                           created_datetime, probable_event_date_list,
+                                                           country, float(lat), float(lng), category_list, author_list)
                 logger.info("Completed processing #{} disaster fromm GDACS feed".format(i + 1))
                 events_list.append(event_object)
                 logger.info('Currently {} event(s) built'.format(len(events_list)))
@@ -78,8 +81,10 @@ def run():
                 num_errors += 1
                 continue
 
-        events_utils.get_xml_tree(events_list)
         events_utils.get_json(events_list)
+
+        if config["gdelt"]["generate_xml_files"]:
+            events_utils.get_xml_tree(events_list)
 
         logger.info('\n\n#### Summary of GDACS events ###')
         logger.info('Number of disasters from GDACS = {}'.format(len(items)))
@@ -87,7 +92,6 @@ def run():
         logger.info('Number of erroneous disasters= {}\n'.format(num_errors))
     except Exception:
         logger.exception("Failed to capture RSS feed from GDACS")
-
 
 if __name__ == '__main__':
     App.setup_directories()

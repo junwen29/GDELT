@@ -36,7 +36,7 @@ def run():
 
                 logger.info("Sending bulk request to ES")
                 url = "http://{}:{}/_bulk".format(es_host, es_port)
-                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+                headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
                 response = requests.post(url, data=data, headers=headers)
                 logger.debug("Response status code = {}".format(response.status_code))
                 response_content = json.loads(response.text)
@@ -48,6 +48,8 @@ def run():
                         item = response_content["items"][j]
                         if "error" in item["index"].keys():
                             logger.error(item["index"]["error"])
+                else:
+                    os.remove(json_file_path)
 
                 logger.info("Completed sending bulk request to ES")
 
