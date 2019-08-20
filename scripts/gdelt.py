@@ -149,8 +149,6 @@ def extract_probable_event_dates(content, article_timestamp):
     probable_event_date_set = set()
     article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
-    article_datetime_string = article_datetime.strftime('%Y-%m-%d %H:%M:%S')
-    probable_event_date_set.add(article_datetime_string)
     extracted_dates = datefinder.find_dates(content, True, False, False)
     for date in extracted_dates:
         try:
@@ -169,7 +167,7 @@ def extract_probable_event_dates(content, article_timestamp):
                         is_month_only = True
                     if keyword + " of" == date[1].lower():
                         is_month_only = True
-            if (date[0] > article_datetime) and (date[0] < article_datetime_plus_one_year) \
+            if (date[0] >= article_datetime) and (date[0] < article_datetime_plus_one_year) \
                     and has_month_reference and not is_month_only:
                 adjusted_date = date[0]
                 extracted_date_string = adjusted_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -464,16 +462,7 @@ def run():
 if __name__ == '__main__':
     App.setup_directories()
     App.setup_logging()
-    if config["proxy"]["enabled"].lower() == "true":
-        proxy_handler = urllib.request.ProxyHandler(
-            {
-                "http": config["proxy"]["http_ip_port"],
-                "https": config["proxy"]["https_ip_port"]
-            }
-        )
-        logger.info("Added proxy handler")
-        opener = urllib.request.build_opener(proxy_handler)
-        urllib.request.install_opener(opener)
+
     # FOR TESTING
 
     # get_article_preview(

@@ -69,10 +69,10 @@ def run():
                 event_str = event_codes_mapping[event_type]
                 category_list.append({"category": event_str})
                 author_list = list()
-                author_list.append("Global Disaster Alerts & Coordination System (GDAC)")
+                author_list.append({"author": "Global Disaster Alerts & Coordination System (GDAC)"})
                 event_object = events_utils.generate_event(title, description, content_paragraph_list, source,
                                                            created_datetime, probable_event_date_list,
-                                                           country, float(lat), float(lng), category_list, author_list)
+                                                           country, lat, lng, category_list, author_list)
                 logger.info("Completed processing #{} disaster fromm GDACS feed".format(i + 1))
                 events_list.append(event_object)
                 logger.info('Currently {} event(s) built'.format(len(events_list)))

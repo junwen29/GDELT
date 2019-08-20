@@ -106,7 +106,7 @@ event_codes_mapping = {
     "170": "Coerce, not specified below",
     "171": "Seize or damage property, not specified below",
     "1711": "Confiscate property",
-    "1712": "Destroy property", "172": "Impose administrative sanctions, not specified below",
+    "1712": "Destroy property",
     "172": "Impose administrative sanctions, not specified below",
     "1721": "Impose restrictions on political freedoms",
     "1722": "Ban political parties or politicians",
