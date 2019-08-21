@@ -144,11 +144,10 @@ def get_article_content(url):
 
 
 # Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
-def extract_probable_event_dates(content, article_timestamp):
+def extract_probable_event_dates(content, article_datetime):
     cleaned_content = re.sub('\\bto\\b','and', content) #this replacement is to overcome a bug in datefinder on date ranges using 'to'
     month_keywords = months_of_year + month_abbreviations
     probable_event_date_set = set()
-    article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
     extracted_dates = datefinder.find_dates(cleaned_content, True, False, False)
     for date in extracted_dates:
@@ -160,17 +159,17 @@ def extract_probable_event_dates(content, article_timestamp):
                     has_month_reference = True
                     if keyword == date[1]:
                         is_month_only = True
-                    if "by " + keyword == date[1].lower():
+                    if "by " + keyword == date[1]:
                         is_month_only = True
-                    if "of " + keyword == date[1].lower():
+                    if "of " + keyword == date[1]:
                         is_month_only = True
-                    if "to " + keyword == date[1].lower():
+                    if "to " + keyword == date[1]:
                         is_month_only = True
-                    if keyword + " by" == date[1].lower():
+                    if keyword + " by" == date[1]:
                         is_month_only = True
-                    if keyword + " of" == date[1].lower():
+                    if keyword + " of" == date[1]:
                         is_month_only = True
-                    if keyword + " to" == date[1].lower():
+                    if keyword + " to" == date[1]:
                         is_month_only = True
                     if re.search(keyword + ' ' + r'\b(20)\d{2}\b', date[1]):
                         is_month_only = True
@@ -395,7 +394,9 @@ def run():
                                     continue
                                 logger.info("Completed searching article against any keywords we want")
 
-                                probable_event_date_list = extract_probable_event_dates(description, ts)
+                                date_today = datetime.date.today()
+                                date_today = datetime.datetime(date_today.year, date_today.month, date_today.day)
+                                probable_event_date_list = extract_probable_event_dates(description, date_today)
 
                                 category_list = list()
                                 event_type = str(event_type)
