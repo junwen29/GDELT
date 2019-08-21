@@ -145,11 +145,12 @@ def get_article_content(url):
 
 # Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
 def extract_probable_event_dates(content, article_timestamp):
+    cleaned_content = re.sub('\\bto\\b','and', content) #this replacement is to overcome a bug in datefinder on date ranges using 'to'
     month_keywords = months_of_year + month_abbreviations
     probable_event_date_set = set()
     article_datetime = datetime.datetime.fromtimestamp(article_timestamp)
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
-    extracted_dates = datefinder.find_dates(content, True, False, False)
+    extracted_dates = datefinder.find_dates(cleaned_content, True, False, False)
     for date in extracted_dates:
         try:
             has_month_reference = False
@@ -163,9 +164,15 @@ def extract_probable_event_dates(content, article_timestamp):
                         is_month_only = True
                     if "of " + keyword == date[1].lower():
                         is_month_only = True
+                    if "to " + keyword == date[1].lower():
+                        is_month_only = True
                     if keyword + " by" == date[1].lower():
                         is_month_only = True
                     if keyword + " of" == date[1].lower():
+                        is_month_only = True
+                    if keyword + " to" == date[1].lower():
+                        is_month_only = True
+                    if re.search(keyword + ' ' + r'\b(20)\d{2}\b', date[1]):
                         is_month_only = True
             if (date[0] >= article_datetime) and (date[0] < article_datetime_plus_one_year) \
                     and has_month_reference and not is_month_only:
@@ -431,8 +438,6 @@ def run():
                     logger.error(csv_file)
                     continue
 
-                events_utils.get_xml_tree(events_list)
-                events_utils.get_json(events_list)
                 # EventsCSV = events_utils.get_csv(events_list)
                 # Generate json output by default
                 events_utils.get_json(events_list)
