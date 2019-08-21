@@ -165,11 +165,15 @@ def extract_probable_event_dates(content, article_datetime):
                         is_month_only = True
                     if "to " + keyword == date[1]:
                         is_month_only = True
+                    if "on " + keyword == date[1]:
+                        is_month_only = True
                     if keyword + " by" == date[1]:
                         is_month_only = True
                     if keyword + " of" == date[1]:
                         is_month_only = True
                     if keyword + " to" == date[1]:
+                        is_month_only = True
+                    if keyword + " on" == date[1]:
                         is_month_only = True
                     if re.search(keyword + ' ' + r'\b(20)\d{2}\b', date[1]):
                         is_month_only = True
