@@ -410,7 +410,7 @@ def run():
                                 category_list.append({"category": event_str})
                                 logger.debug('Event category = {}'.format(event_str))
                                 author_list = list()
-                                author_list.append({"author": "GDELT"})
+                                author_list.append("GDELT")
 
                                 event_object = events_utils.generate_event(
                                     headline,

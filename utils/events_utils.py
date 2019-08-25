@@ -120,7 +120,7 @@ def get_xml_tree(list_of_events):
         authors = ElementTree.SubElement(event_node, 'authors')
         for author_object in event_object["authors"]:
             author_node = ElementTree.SubElement(authors, 'author')
-            author_node.text = author_object["author"]
+            author_node.text = author_object
 
     ts = time.time()
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
@@ -157,8 +157,8 @@ def get_json(list_of_events):
             for c in event_object["hit_list"]:
                 categories.append(c)
 
-        lng_lat = [event_object["lng"], event_object[
-            "lat"]]  # each event should hold only 1 location, create multiple events if the same event is held at
+        lng_lat = [float(event_object["lng"]), float(event_object[
+            "lat"])]  # each event should hold only 1 location, create multiple events if the same event is held at
         # other places at the same time
 
         countries_list = list()
