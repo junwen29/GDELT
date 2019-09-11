@@ -15,7 +15,7 @@
         "data_directory":  "..\\GDELT\\data"
     },
     "gdelt": {
-        "is_delta_crawl": true,
+        "is_delta_crawl": false,
         "convert_json_to_csv_files": true,
         "generate_xml_files": true,
         "max_csv_urls_to_crawl": 20,
@@ -66,6 +66,7 @@
     "elasticsearch": {
         "host": "localhost",
         "port": 9200,
-        "events_index_name": "geo-events"
+        "events_index_name": "geo-events",
+        "events_index_type": "doc"
     }
 }

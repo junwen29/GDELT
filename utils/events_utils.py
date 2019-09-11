@@ -140,6 +140,7 @@ def get_json(list_of_events):
     ts = time.time()
     config = config_utils.get_app_config()
     index_name = config["elasticsearch"]["events_index_name"]
+    index_type = config["elasticsearch"]["events_index_type"]
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
     filename = config["app"]["json_directory"] + os.sep + created_datetime + "_for_es.json"
     ib_filename = config["app"]["ib_directory"] + os.sep + created_datetime + "_for_ib.csv"
@@ -180,7 +181,7 @@ def get_json(list_of_events):
 
         # By default json is the output
         with open(filename, 'a') as outfile:
-            json.dump({"index": {"_index": index_name, "_type": "_doc", "_id": generate_id(event_object["title"])}},
+            json.dump({"index": {"_index": index_name, "_type": index_type, "_id": generate_id(event_object["title"])}},
                       outfile)
             outfile.write("\n")
             json.dump(new_event_object, outfile)
