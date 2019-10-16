@@ -79,6 +79,7 @@ def setup_logging(default_path=default_logging_path,
                     config["handlers"][i]["filename"] = log_filename
 
             logging.config.dictConfig(config)
+            f.close()
 
     else:
         logging.basicConfig(level=default_level)

@@ -32,7 +32,8 @@ def run():
                 json_file_path = json_directory_path + '\\' + json_file
 
                 logger.debug("Opening file {}".format(json_file))
-                data = open(json_file_path).read()
+                data_file = open(json_file_path)
+                data = data_file.read()
 
                 logger.info("Sending bulk request to ES")
                 url = "http://{}:{}/_bulk".format(es_host, es_port)
@@ -52,6 +53,7 @@ def run():
                     os.remove(json_file_path)
 
                 logger.info("Completed sending bulk request to ES")
+                data_file.close()
 
     except Exception:
         logger.exception("Failed to run bulk index script")

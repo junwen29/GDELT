@@ -2,13 +2,11 @@ import datetime
 import logging
 import logging.config
 import os
-import time
 
-import schedule
 import yaml
 
-from utils import config_utils
 from scripts import gdelt, gdacs
+from utils import config_utils
 
 logger = logging.getLogger('App')
 
@@ -58,6 +56,7 @@ def setup_logging(default_path="./config/logging.yml",
                     config["handlers"][i]["filename"] = log_filename
 
             logging.config.dictConfig(config)
+            f.close()
 
     else:
         logging.basicConfig(level=default_level)

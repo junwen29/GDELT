@@ -1,4 +1,3 @@
-import base64
 import csv
 import datetime
 import hashlib
@@ -14,7 +13,8 @@ from utils import config_utils
 logger = logging.getLogger("Utils")
 
 
-def generate_event(title, content, content_paragraphs_list, source, created_datetime, probable_event_date_list, country, lat, lng, category_list, author_list,
+def generate_event(title, content, content_paragraphs_list, source, created_datetime, probable_event_date_list, country,
+                   lat, lng, category_list, author_list,
                    hit_list=None):
     event = {
         "title": title,
@@ -22,7 +22,7 @@ def generate_event(title, content, content_paragraphs_list, source, created_date
         "source": source,
         "content_paragraphs": content_paragraphs_list,
         "created_datetime": created_datetime,
-        "probable_event_dates" : probable_event_date_list,
+        "probable_event_dates": probable_event_date_list,
         "country": country,
         "lat": lat,
         "lng": lng,
@@ -128,6 +128,7 @@ def get_xml_tree(list_of_events):
     xml_str = minidom.parseString(ElementTree.tostring(root_element)).toprettyxml()
     with open(config["app"]["xml_directory"] + os.sep + created_datetime + "_for_ib.xml", "wb") as f:
         f.write(xml_str.encode('utf-8'))
+        f.close()
 
     logger.info("DONE: GENERATING TREE ...")
 
@@ -142,11 +143,11 @@ def get_json(list_of_events):
     index_name = config["elasticsearch"]["events_index_name"]
     index_type = config["elasticsearch"]["events_index_type"]
     created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d_%H%M%S')
-    filename = config["app"]["json_directory"] + os.sep + created_datetime + "_for_es.json"
-    ib_filename = config["app"]["ib_directory"] + os.sep + created_datetime + "_for_ib.csv"
+    json_file_path = config["app"]["json_directory"] + os.sep + created_datetime + "_for_es.json"
+    csv_file_path = config["app"]["ib_directory"] + os.sep + created_datetime + "_for_ib.csv"
 
-    logger.info(filename)
-    logger.info(ib_filename)  # csv file to carry the json across the ib
+    logger.info(json_file_path)
+    logger.info(csv_file_path)  # csv file to carry the json across the ib
 
     for event_object in list_of_events:
 
@@ -159,7 +160,7 @@ def get_json(list_of_events):
                 categories.append(c)
 
         lng_lat = [float(event_object["lng"]), float(event_object[
-            "lat"])]  # each event should hold only 1 location, create multiple events if the same event is held at
+                                                         "lat"])]  # each event should hold only 1 location, create multiple events if the same event is held at
         # other places at the same time
 
         countries_list = list()
@@ -180,17 +181,19 @@ def get_json(list_of_events):
         es_json_list.append(new_event_object)
 
         # By default json is the output
-        with open(filename, 'a') as outfile:
+        with open(json_file_path, 'a') as json_file:
             json.dump({"index": {"_index": index_name, "_type": index_type, "_id": generate_id(event_object["title"])}},
-                      outfile)
-            outfile.write("\n")
-            json.dump(new_event_object, outfile)
-            outfile.write("\n\n")
+                      json_file)
+            json_file.write("\n")
+            json.dump(new_event_object, json_file)
+            json_file.write("\n\n")
+            json_file.close()
 
-        with open(ib_filename, 'a') as the_base64_file:
-            with open(filename) as the_file:
-                encoded = base64.b64encode(the_file.read().encode('utf-8'))
-                the_base64_file.write(encoded.decode('utf-8'))
+    with open(csv_file_path, 'a') as csv_file:
+        with open(json_file_path, 'r') as the_file:
+            csv_file.write(the_file.read())
+            the_file.close()
+            csv_file.close()
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 
@@ -204,54 +207,3 @@ def generate_id(text):
     hash_object = hashlib.sha256(text.encode())
     hex_dig = hash_object.hexdigest()
     return hex_dig
-
-
-# TODO to deprecate
-class EventsParser(object):
-    """
-    THIS GENERATES MACHINE-READABLE CSV, NOT BASE64 CSV!
-    """
-
-    @staticmethod
-    def get_csv(list_of_events):
-
-        logger.info("GENERATING CSV...")
-
-        ts = time.time()
-        created_datetime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d%H%M')
-        with open('config/app.json') as json_config_file:
-            config = json.load(json_config_file)
-
-        filename = config["app"]["xml_directory"] + "\\" + created_datetime + "_friendly.csv"
-
-        with open(filename, 'a') as outfile:
-            fieldnames = ["created_date_time", "location", "source", "categories", "countries", "title", "content",
-                          "authors"]
-            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-        for event_object in list_of_events:
-
-            categories = list()
-            for c in event_object["categories"]:
-                categories.append(c["category"])
-
-            for w in event_object["hit_list"]:
-                categories.append(w)
-
-            latlng = [event_object["lat"], event_object["lng"]]
-
-            new_event_object = {"created_date_time": event_object["created_datetime"], "location": latlng,
-                                "source": event_object["source"],
-                                "categories": categories, "countries": event_object["country"],
-                                "title": event_object["title"].encode('utf8'),
-                                "content": event_object["content"].encode('utf8'),
-                                "authors": ["OPEN-SOURCE INTERNET"]}
-
-            with open(filename, 'a') as outfile:
-                fieldnames = ["created_date_time", "location", "source", "categories", "countries", "title", "content",
-                              "authors"]
-                writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-                writer.writerow(new_event_object)
-
-        logger.info("DONE: GENERATING CSV...")

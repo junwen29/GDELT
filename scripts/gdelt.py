@@ -459,6 +459,7 @@ def run():
                 logger.info('Number of empty rows in {} = {}'.format(csv_file, num_empty_rows))
                 logger.info('Number of erroneous urls in {} = {}'.format(csv_file, len(erroneous_urls)))
                 logger.info('Erroneous urls:  {}\n'.format(erroneous_urls))
+                f.close()
 
     move_csv_files_to_processed_folder()
 
