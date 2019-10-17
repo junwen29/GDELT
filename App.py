@@ -13,6 +13,7 @@ from scripts import gdelt, gdacs
 logger = logging.getLogger('App')
 default_logging_path = "." + os.sep + "config" + os.sep + "logging.yml"
 
+
 def main():
     setup_directories()
     setup_logging()
@@ -128,7 +129,7 @@ def run_gdelt_script():
     logger.info("Running GDELT script at {}".format(time_now.strftime('%Y-%m-%d %H:%M:%S')))
     gdelt.run()
     time_later = datetime.datetime.now()
-    logger.info("Completed running GDELT script at {}".format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
+    logger.info('Completed running GDELT script at {}'.format(time_later.strftime('%Y-%m-%d %H:%M:%S')))
     time_taken = time_later - time_now
     logger.info("Time taken = {} seconds".format(time_taken.total_seconds()))
 

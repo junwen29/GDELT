@@ -5,7 +5,6 @@ import logging.config
 import os
 import re
 import time
-import urllib
 import zipfile
 from datetime import timedelta
 from os.path import isfile, join
@@ -19,7 +18,7 @@ import App
 from gdelt_countries_mapping import countries_mapping
 from gdelt_events_mapping import event_codes_mapping
 from gdelt_headers import headers
-from utils import config_utils, events_utils
+from utils import config_utils, events_utils, proxies_utils
 
 config = config_utils.get_app_config()
 
@@ -36,13 +35,36 @@ months_of_year = config["gdelt"]["months_of_year"]
 
 in_process_csv_directory = (config["gdelt"]["in_process_csv_directory"]).replace('\\', os.sep).replace('/', os.sep)
 processed_csv_directory = (config["gdelt"]["processed_csv_directory"]).replace('\\', os.sep).replace('/', os.sep)
+logger = logging.getLogger("GDELT")
+
+http_proxies = config["proxy"]["http_ip_port"]
+https_proxies = config["proxy"]["https_ip_port"]
+
+http_proxy = ""
+https_proxy = ""
+
+for currentProxy in http_proxies:
+    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
+        logger.info("Bad HTTP Proxy: " + currentProxy)
+    else:
+        logger.info("HTTP is working: " + currentProxy)
+        http_proxy = currentProxy
+        break
+
+for currentProxy in https_proxies:
+    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
+        logger.info("Bad HTTPS Proxy: " + currentProxy)
+    else:
+        logger.info("HTTPS is working: " + currentProxy)
+        https_proxy = currentProxy
+        break
 
 proxy_handler = {
-    "http": config["proxy"]["http_ip_port"],
-    "https": config["proxy"]["https_ip_port"]
+    "http": http_proxy,
+    "https": https_proxy
 }
+
 proxy_enabled = config["proxy"]["enabled"].lower()
-logger = logging.getLogger("GDELT")
 
 erroneous_urls = list()
 
@@ -54,9 +76,9 @@ def get_article_preview(url):
 
         if proxy_enabled == "true":
             article_preview_request = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=20,
-                                                   stream=True)
+                                                   stream=True, verify=True)
         else:
-            article_preview_request = requests.get(url, headers=browser_headers, timeout=20, stream=True)
+            article_preview_request = requests.get(url, headers=browser_headers, timeout=20, stream=True, verify=True)
 
         logger.info('Opening page now...')
 
@@ -104,6 +126,16 @@ def get_article_preview(url):
             return {"headline": page_headline, "description": page_description}
         else:
             return {"headline": title, "description": ""}
+    except TimeoutError:
+        logging.info("Article's preview from {} takes too long to load".format(url))
+        logging.info("Goose is unable to read these content due to timeout")
+        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
+        return {"headline": title, "description": None}
+    except ValueError:
+        logging.info("Article's preview from {} has unicode strings with encoding declaration".format(url))
+        logging.info("Goose is unable to read these content")
+        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
+        return {"headline": title, "description": None}
     except Exception:
         logger.exception("Failed to get article preview at url: {}".format(url))
         erroneous_urls.append({"url": url, "error": "Unable to get preview"})
@@ -136,7 +168,19 @@ def get_article_content(url):
         logger.debug(content)
 
         return {"content": content, "paragraphs_list": paragraphs_list}
-    except Exception as e:
+    except TimeoutError:
+        logging.info("Article's content from {} takes too long to load".format(url))
+        logging.info("Goose is unable to read these content due to timeout")
+        erroneous_urls.append({"url": url, "error": "Unable to get content"})
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
+    except ValueError:
+        logging.info("Article's content from {} has unicode strings with encoding declaration".format(url))
+        logging.info("Goose is unable to read these content")
+        erroneous_urls.append({"url": url, "error": "Unable to get content"})
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
+    except Exception:
         logging.exception("Error getting article's content from {}".format(url))
         erroneous_urls.append({"url": url, "error": "Unable to get content"})
         content = ""
@@ -145,7 +189,8 @@ def get_article_content(url):
 
 # Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
 def extract_probable_event_dates(content, article_datetime):
-    cleaned_content = re.sub('\\bto\\b','and', content) #this replacement is to overcome a bug in datefinder on date ranges using 'to'
+    cleaned_content = re.sub('\\bto\\b', 'and',
+                             content)  # this replacement is to overcome a bug in datefinder on date ranges using 'to'
     month_keywords = months_of_year + month_abbreviations
     probable_event_date_set = set()
     article_datetime_plus_one_year = article_datetime + timedelta(days=365)
@@ -310,6 +355,7 @@ def run():
             csv_file = gdelt_csv_files[i]
             csv_file_path = config["gdelt"]["in_process_csv_directory"] + os.sep + csv_file
             with open(csv_file_path, newline='', encoding='utf-8') as f:
+                logger.info('Processing csv file:' + csv_file_path)
                 csv_reader = csv.reader(f, delimiter=' ', quotechar='|')
                 num_empty_rows = 0
                 num_error_rows = 0
@@ -437,10 +483,12 @@ def run():
 
                         else:
                             num_empty_rows += 1
+                    logger.info("Completed processing csv file: " + csv_file_path)
                 except Exception:
                     num_error_rows += 1
                     logger.exception('Exception in ' + csv_file + '.')
                     logger.error(csv_file)
+                    logger.error("Hit exception at csv file: " + csv_file_path)
                     continue
 
                 # EventsCSV = events_utils.get_csv(events_list)
@@ -475,6 +523,9 @@ if __name__ == '__main__':
     App.setup_logging()
 
     # FOR TESTING
+    # http = urllib3.PoolManager()
+    # r = http.request('GET', 'https://www.globalsecurity.org/wmd/library/news/china/2019/china-191015-presstv01.htm')
+    # article_preview_request = requests.get('https://www.globalsecurity.org/wmd/library/news/china/2019/china-191015-presstv01.htm', headers=browser_headers, timeout=20, stream=True, verify=True)
 
     # get_article_preview(
     #     "https://www.msn.com/en-au/news/australia/slain-brisbane-gp-dr-luping-zeng-laid-to-rest/ar-BBWlwrD")
@@ -483,4 +534,6 @@ if __name__ == '__main__':
 
     # export_urls = get_gdelt_export_urls("http://data.gdeltproject.org/gdeltv2/masterfilelist.txt")
     # logger.info(export_urls)
+    # get_article_content('https://www.msn.com/en-my/news/national/malaysia-offers-sweet-deal-to-india-to-address-trade'
+    #                     '-imbalance/ar-AAIPvXf')
     run()

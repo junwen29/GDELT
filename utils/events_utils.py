@@ -1,4 +1,3 @@
-import csv
 import datetime
 import hashlib
 import json
@@ -181,6 +180,7 @@ def get_json(list_of_events):
         es_json_list.append(new_event_object)
 
         # By default json is the output
+        logging.info("Building JSON file")
         with open(json_file_path, 'a') as json_file:
             json.dump({"index": {"_index": index_name, "_type": index_type, "_id": generate_id(event_object["title"])}},
                       json_file)
@@ -188,12 +188,15 @@ def get_json(list_of_events):
             json.dump(new_event_object, json_file)
             json_file.write("\n\n")
             json_file.close()
+            logging.info("Completed writing to JSON file at " + json_file_path)
 
+    logging.info("Building CSV file from JSON file")
     with open(csv_file_path, 'a') as csv_file:
         with open(json_file_path, 'r') as the_file:
             csv_file.write(the_file.read())
             the_file.close()
             csv_file.close()
+            logging.info("Completed writing to CSV file at " + csv_file_path)
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 

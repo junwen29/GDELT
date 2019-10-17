@@ -18,7 +18,6 @@ def main():
     run_gdacs_script()
 
 
-
 def setup_logging(default_path="./config/logging.yml",
                   default_level=logging.INFO,
                   env_key="LOG_CFG"):
@@ -98,6 +97,7 @@ def setup_directories():
         xml_directory = config["app"]["xml_directory"]
         xml_directory.replace('\\', os.sep).replace('/', os.sep)
         os.makedirs(xml_directory)
+
 
 def run_gdelt_script():
     time_now = datetime.datetime.now()

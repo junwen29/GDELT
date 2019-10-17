@@ -8,14 +8,41 @@ import feedparser
 import App
 from gdacs_event_codes_mapping import event_codes_mapping
 from gdacs_event_types import event_types
-from utils import config_utils, events_utils
+from utils import config_utils, events_utils, proxies_utils
 
 logger = logging.getLogger("GDACS")
+config = config_utils.get_app_config()
+
+http_proxies = config["proxy"]["http_ip_port"]
+https_proxies = config["proxy"]["https_ip_port"]
+
+http_proxy = ""
+https_proxy = ""
+
+for currentProxy in http_proxies:
+    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
+        logger.info("Bad HTTP Proxy: " + currentProxy)
+    else:
+        logger.info("HTTP is working: " + currentProxy)
+        http_proxy = currentProxy
+        break
+
+for currentProxy in https_proxies:
+    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
+        logger.info("Bad HTTPS Proxy: " + currentProxy)
+    else:
+        logger.info("HTTPS is working: " + currentProxy)
+        https_proxy = currentProxy
+        break
+
+proxy_handler = {
+    "http": http_proxy,
+    "https": https_proxy
+}
 
 
 def run():
     logger.info("Running GDACS script")
-    config = config_utils.get_app_config()
     rss_24h_feed_url = config["gdacs"]["rss_24h_feed_url"]
     try:
         if config["proxy"]["enabled"].lower() == "true":
@@ -92,6 +119,7 @@ def run():
         logger.info('Number of erroneous disasters= {}\n'.format(num_errors))
     except Exception:
         logger.exception("Failed to capture RSS feed from GDACS")
+
 
 if __name__ == '__main__':
     App.setup_directories()
