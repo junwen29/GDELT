@@ -148,55 +148,60 @@ def get_json(list_of_events):
     logger.info(json_file_path)
     logger.info(csv_file_path)  # csv file to carry the json across the ib
 
-    for event_object in list_of_events:
+    if len(list_of_events) > 0:
+        logger.info('Number of events captured: {}'.format(list_of_events))
+        for event_object in list_of_events:
 
-        categories = list()
-        for c in event_object["categories"]:
-            categories.append(c["category"])
+            categories = list()
+            for c in event_object["categories"]:
+                categories.append(c["category"])
 
-        if event_object["hit_list"] is not None:
-            for c in event_object["hit_list"]:
-                categories.append(c)
+            if event_object["hit_list"] is not None:
+                for c in event_object["hit_list"]:
+                    categories.append(c)
 
-        lng_lat = [float(event_object["lng"]), float(event_object[
-                                                         "lat"])]  # each event should hold only 1 location, create multiple events if the same event is held at
-        # other places at the same time
+            lng_lat = [float(event_object["lng"]), float(event_object[
+                                                             "lat"])]  # each event should hold only 1 location, create multiple events if the same event is held at
+            # other places at the same time
 
-        countries_list = list()
-        countries_list.append(event_object["country"])
+            countries_list = list()
+            countries_list.append(event_object["country"])
 
-        new_event_object = {
-            "created_date_time": event_object["created_datetime"],
-            "location": lng_lat,
-            "source": event_object["source"],
-            "probable_event_dates": event_object["probable_event_dates"],
-            "categories": categories,
-            "countries": countries_list,
-            "title": event_object["title"],
-            "content": event_object["content"],
-            "content_paragraphs": event_object["content_paragraphs"],
-            "authors": event_object["authors"]
-        }
-        es_json_list.append(new_event_object)
+            new_event_object = {
+                "created_date_time": event_object["created_datetime"],
+                "location": lng_lat,
+                "source": event_object["source"],
+                "probable_event_dates": event_object["probable_event_dates"],
+                "categories": categories,
+                "countries": countries_list,
+                "title": event_object["title"],
+                "content": event_object["content"],
+                "content_paragraphs": event_object["content_paragraphs"],
+                "authors": event_object["authors"]
+            }
+            es_json_list.append(new_event_object)
 
-        # By default json is the output
-        logging.info("Building JSON file")
-        with open(json_file_path, 'a') as json_file:
-            json.dump({"index": {"_index": index_name, "_type": index_type, "_id": generate_id(event_object["title"])}},
-                      json_file)
-            json_file.write("\n")
-            json.dump(new_event_object, json_file)
-            json_file.write("\n\n")
-            json_file.close()
-            logging.info("Completed writing to JSON file at " + json_file_path)
+            # By default json is the output
+            logging.info("Building JSON file")
+            with open(json_file_path, 'a') as json_file:
+                json.dump(
+                    {"index": {"_index": index_name, "_type": index_type, "_id": generate_id(event_object["title"])}},
+                    json_file)
+                json_file.write("\n")
+                json.dump(new_event_object, json_file)
+                json_file.write("\n\n")
+                json_file.close()
+                logging.info("Completed writing to JSON file at " + json_file_path)
 
-    logging.info("Building CSV file from JSON file")
-    with open(csv_file_path, 'a') as csv_file:
-        with open(json_file_path, 'r') as the_file:
-            csv_file.write(the_file.read())
-            the_file.close()
-            csv_file.close()
-            logging.info("Completed writing to CSV file at " + csv_file_path)
+        logging.info("Building CSV file from JSON file")
+        with open(csv_file_path, 'a') as csv_file:
+            with open(json_file_path, 'r') as the_file:
+                csv_file.write(the_file.read())
+                the_file.close()
+                csv_file.close()
+                logging.info("Completed writing to CSV file at " + csv_file_path)
+    else:
+        logger.info("No events captured")
 
     logger.info("Completed generating Elasticsearch JSON for bulk indexing")
 

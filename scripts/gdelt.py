@@ -37,273 +37,16 @@ in_process_csv_directory = (config["gdelt"]["in_process_csv_directory"]).replace
 processed_csv_directory = (config["gdelt"]["processed_csv_directory"]).replace('\\', os.sep).replace('/', os.sep)
 logger = logging.getLogger("GDELT")
 
-http_proxies = config["proxy"]["http_ip_port"]
-https_proxies = config["proxy"]["https_ip_port"]
-
-http_proxy = ""
-https_proxy = ""
-
-for currentProxy in http_proxies:
-    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
-        logger.info("Bad HTTP Proxy: " + currentProxy)
-    else:
-        logger.info("HTTP is working: " + currentProxy)
-        http_proxy = currentProxy
-        break
-
-for currentProxy in https_proxies:
-    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
-        logger.info("Bad HTTPS Proxy: " + currentProxy)
-    else:
-        logger.info("HTTPS is working: " + currentProxy)
-        https_proxy = currentProxy
-        break
-
-proxy_handler = {
-    "http": http_proxy,
-    "https": https_proxy
-}
-
 proxy_enabled = config["proxy"]["enabled"].lower()
 
 erroneous_urls = list()
-
-
-def get_article_preview(url):
-    title = None
-    try:
-        logger.info('Getting preview of: ' + url)
-
-        if proxy_enabled == "true":
-            article_preview_request = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=20,
-                                                   stream=True, verify=True)
-        else:
-            article_preview_request = requests.get(url, headers=browser_headers, timeout=20, stream=True, verify=True)
-
-        logger.info('Opening page now...')
-
-        page = article_preview_request.content
-
-        logger.info('Page loaded, parsing page now')
-
-        soup = BeautifulSoup(page, "html.parser")
-        title = soup.find('title').get_text()
-        title = title.replace("\r", "")
-        title = title.replace("\n", "")
-        title_tag = soup.find("meta", property="og:title")
-
-        page_headline = None
-        if title_tag is not None:
-            page_headline = title_tag.get("content")
-            if page_headline is not None:
-                page_headline = page_headline.replace("\r", "")
-                page_headline = page_headline.replace("\n", "")
-        else:
-            logger.info("Page Html missing meta title tag")
-        # headline = headline.trim()
-
-        page_description = None
-        description_tag = soup.find("meta", property="og:description")
-        if description_tag is not None:
-            page_description = description_tag.get("content")
-            if page_description is not None:
-                page_description = page_description.replace("\r", "")
-                page_description = page_description.replace("\n", "")
-        else:
-            logger.info("Page Html missing meta description tag")
-
-        # description = description.trim()
-        # logger.info title.encode("utf-8")
-        # logger.info headline.encode("utf-8")
-        # logger.info description.encode("utf-8")
-
-        # the_body = soup.find('body').get_text()
-        # EventsLogging.info('<body>' + the_body + '</body>')
-
-        logger.info('Page parsed')
-
-        if page_headline is not None:
-            return {"headline": page_headline, "description": page_description}
-        else:
-            return {"headline": title, "description": ""}
-    except TimeoutError:
-        logging.info("Article's preview from {} takes too long to load".format(url))
-        logging.info("Goose is unable to read these content due to timeout")
-        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
-        return {"headline": title, "description": None}
-    except ValueError:
-        logging.info("Article's preview from {} has unicode strings with encoding declaration".format(url))
-        logging.info("Goose is unable to read these content")
-        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
-        return {"headline": title, "description": None}
-    except Exception:
-        logger.exception("Failed to get article preview at url: {}".format(url))
-        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
-        return {"headline": title, "description": None}
-
-
-def get_article_content(url):
-    try:
-        logger.info("Getting article content of " + url + " with Goose")
-        goose_config = {
-            'browser_user_agent': 'Mozilla',
-            'parser_class': 'lxml',  # soup or lxml for parsing xml and html
-            # 'enable_image_fetching': True,
-            'http_timeout': browser_timeout
-        }
-
-        if config["proxy"]["enabled"].lower() == "true":
-            goose_config["http_proxy"] = config["proxy"]["http_ip_port"]
-            goose_config["https_proxy"] = config["proxy"]["https_ip_port"]
-
-        g = Goose(goose_config)
-        logger.debug("Goose current parser is {}".format(g.config.get_parser()))
-        article = g.extract(url=url)
-        logger.debug("Extracted content of article from {}".format(url))
-        content = article.cleaned_text.replace("\n", " ")
-        cleaned_text = article.cleaned_text
-        paragraphs_list = list()
-        paragraphs_list = paragraphs_list + cleaned_text.split('\n')
-
-        logger.debug(content)
-
-        return {"content": content, "paragraphs_list": paragraphs_list}
-    except TimeoutError:
-        logging.info("Article's content from {} takes too long to load".format(url))
-        logging.info("Goose is unable to read these content due to timeout")
-        erroneous_urls.append({"url": url, "error": "Unable to get content"})
-        content = ""
-        return {"content": content, "paragraphs_list": list()}
-    except ValueError:
-        logging.info("Article's content from {} has unicode strings with encoding declaration".format(url))
-        logging.info("Goose is unable to read these content")
-        erroneous_urls.append({"url": url, "error": "Unable to get content"})
-        content = ""
-        return {"content": content, "paragraphs_list": list()}
-    except Exception:
-        logging.exception("Error getting article's content from {}".format(url))
-        erroneous_urls.append({"url": url, "error": "Unable to get content"})
-        content = ""
-        return {"content": content, "paragraphs_list": list()}
-
-
-# Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
-def extract_probable_event_dates(content, article_datetime):
-    cleaned_content = re.sub('\\bto\\b', 'and',
-                             content)  # this replacement is to overcome a bug in datefinder on date ranges using 'to'
-    month_keywords = months_of_year + month_abbreviations
-    probable_event_date_set = set()
-    article_datetime_plus_one_year = article_datetime + timedelta(days=365)
-    extracted_dates = datefinder.find_dates(cleaned_content, True, False, False)
-    for date in extracted_dates:
-        try:
-            has_month_reference = False
-            is_month_only = False
-            for keyword in month_keywords:
-                if re.search(r'\b' + keyword + r'\b', date[1]):
-                    has_month_reference = True
-                    if keyword == date[1]:
-                        is_month_only = True
-                    if "by " + keyword == date[1]:
-                        is_month_only = True
-                    if "of " + keyword == date[1]:
-                        is_month_only = True
-                    if "to " + keyword == date[1]:
-                        is_month_only = True
-                    if "on " + keyword == date[1]:
-                        is_month_only = True
-                    if keyword + " by" == date[1]:
-                        is_month_only = True
-                    if keyword + " of" == date[1]:
-                        is_month_only = True
-                    if keyword + " to" == date[1]:
-                        is_month_only = True
-                    if keyword + " on" == date[1]:
-                        is_month_only = True
-                    if re.search(keyword + ' ' + r'\b(20)\d{2}\b', date[1]):
-                        is_month_only = True
-            if (date[0] >= article_datetime) and (date[0] < article_datetime_plus_one_year) \
-                    and has_month_reference and not is_month_only:
-                adjusted_date = date[0]
-                extracted_date_string = adjusted_date.strftime('%Y-%m-%d %H:%M:%S')
-                probable_event_date_set.add(extracted_date_string)
-        except Exception as e:
-            logger.exception("Failed to compare dates")
-            continue
-    return list(probable_event_date_set)
-
-
-def get_gdelt_export_url(url):
-    if proxy_enabled == "true":
-        r = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=10)
-    else:
-        r = requests.get(url, headers=browser_headers, timeout=10)
-
-    text = r.text
-    return text.split('\n')[0].split(' ')[2]
-
-
-def get_gdelt_export_urls(url, max_urls=100):
-    logger.info("Retrieving gdelt export urls with max number of urls = {}".format(max_urls))
-    if proxy_enabled == "true":
-        r = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=10)
-    else:
-        r = requests.get(url, headers=browser_headers, timeout=10)
-    text = r.text
-    lines = text.split('\n')
-    urls = list()
-
-    for i in reversed(range(len(lines))):
-        if len(urls) > max_urls:
-            break
-        try:
-            line = lines[i]
-            url = line.split(' ')[2]
-            if "export" in url:
-                urls.append(url)
-        except Exception:
-            continue
-
-    return urls
-
-
-def get_gdelt_csv_files(export_url):
-    logger.info('Downloading GDELT export zip file from  {} ... '.format(export_url))
-    if proxy_enabled == "true":
-        r = requests.get(export_url, proxies=proxy_handler, headers=browser_headers, timeout=10, stream=True)
-    else:
-        r = requests.get(export_url, headers=browser_headers, timeout=10, stream=True)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall(config["gdelt"]["in_process_csv_directory"])
-    csv_files = [f for f in os.listdir(config["gdelt"]["in_process_csv_directory"]) if
-                 isfile(join(config["gdelt"]["in_process_csv_directory"], f))]
-    logger.info('Downloaded GDELT export zip file from  {} ... '.format(export_url))
-    return csv_files
-
-
-def move_csv_files_to_processed_folder():
-    logger.info("Moving csv files to processed folder")
-    src = os.path.abspath(in_process_csv_directory)
-    dst = os.path.abspath(processed_csv_directory)
-    list_of_files = os.listdir(src)
-    for f in list_of_files:
-        full_path_src = src + os.sep + f
-        full_path_dest = dst + os.sep + f
-        os.rename(full_path_src, full_path_dest)
-        # subprocess.Popen("move " + "\"" + full_path + "\" \"" + dst + "\"", shell=True)  # move command is os
-        # dependent
-        logger.info("Moved file [" + full_path_src + "] to [" + full_path_dest + "]")
-
-
-def find_keyword(keyword, content):
-    if re.search(keyword, content.lower()):
-        return True
-    else:
-        return False
+proxy_handler = ""
 
 
 def run():
     time_now = datetime.datetime.now()
+    global proxy_handler  # proxy handler is a global variable
+    proxy_handler = proxies_utils.get_proxy_handler()
 
     logger.info(
         "Running GDELT script at {} minutes away from the next new 15-minute updates".format(
@@ -314,15 +57,18 @@ def run():
     gdelt_csv_files_set = set()
 
     if is_delta_crawl:
+        logger.info("Doing Delta Crawling")
         logger.info('Reading GDELT last update text at {} ...'.format(config["gdelt"]["last_update_url"]))
         # Retrieving gdelt_export_url
         gdelt_export_url = get_gdelt_export_url(config["gdelt"]["last_update_url"])
         gdelt_export_urls.append(gdelt_export_url)
 
     else:
+        logger.info("Doing Full Crawling")
         logger.info('Reading GDELT master file list text at {} ...'.format(config["gdelt"]["master_file_list_url"]))
         gdelt_export_urls = get_gdelt_export_urls(config["gdelt"]["master_file_list_url"],
                                                   config["gdelt"]["max_csv_urls_to_crawl"])
+
     # Download the csv zip files from gdelt_export_url(s)
     for gdelt_url in gdelt_export_urls:
         try:
@@ -518,22 +264,260 @@ def run():
         'Done: {} minutes to the next new 15-minute updates'.format((60 - datetime.datetime.now().minute) % 15))
 
 
+def get_article_preview(url):
+    title = None
+    try:
+        logger.info('Getting preview of: ' + url)
+
+        if proxy_enabled == "true":
+            logger.info("Using proxies from")
+            logger.info(proxy_handler)
+            logger.info("Creating request using proxy ...")
+            article_preview_request = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=20,
+                                                   stream=True, verify=True)
+            logger.info("Done with request using proxy ...")
+        else:
+            article_preview_request = requests.get(url, headers=browser_headers, timeout=20, stream=True, verify=True)
+
+        logger.info('Opening page now...')
+
+        page = article_preview_request.content
+
+        logger.info('Page loaded, parsing page now')
+
+        soup = BeautifulSoup(page, "html.parser")
+        title = soup.find('title').get_text()
+        title = title.replace("\r", "")
+        title = title.replace("\n", "")
+        title_tag = soup.find("meta", property="og:title")
+
+        page_headline = None
+        if title_tag is not None:
+            page_headline = title_tag.get("content")
+            if page_headline is not None:
+                page_headline = page_headline.replace("\r", "")
+                page_headline = page_headline.replace("\n", "")
+        else:
+            logger.info("Page Html missing meta title tag")
+        # headline = headline.trim()
+
+        page_description = None
+        description_tag = soup.find("meta", property="og:description")
+        if description_tag is not None:
+            page_description = description_tag.get("content")
+            if page_description is not None:
+                page_description = page_description.replace("\r", "")
+                page_description = page_description.replace("\n", "")
+        else:
+            logger.info("Page Html missing meta description tag")
+
+        # description = description.trim()
+        # logger.info title.encode("utf-8")
+        # logger.info headline.encode("utf-8")
+        # logger.info description.encode("utf-8")
+
+        # the_body = soup.find('body').get_text()
+        # EventsLogging.info('<body>' + the_body + '</body>')
+
+        logger.info('Page parsed')
+
+        if page_headline is not None:
+            return {"headline": page_headline, "description": page_description}
+        else:
+            return {"headline": title, "description": ""}
+    except TimeoutError:
+        logging.info("Article's preview from {} takes too long to load".format(url))
+        logging.info("Goose is unable to read these content due to timeout")
+        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
+        return {"headline": title, "description": None}
+    except ValueError:
+        logging.info("Article's preview from {} has unicode strings with encoding declaration".format(url))
+        logging.info("Goose is unable to read these content")
+        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
+        return {"headline": title, "description": None}
+    except Exception:
+        logger.exception("Failed to get article preview at url: {}".format(url))
+        erroneous_urls.append({"url": url, "error": "Unable to get preview"})
+        return {"headline": title, "description": None}
+
+
+def get_article_content(url):
+    try:
+        logger.info("Getting article content of " + url + " with Goose")
+        goose_config = {
+            'browser_user_agent': 'Mozilla',
+            'parser_class': 'lxml',  # soup or lxml for parsing xml and html
+            # 'enable_image_fetching': True,
+            'http_timeout': browser_timeout
+        }
+
+        if config["proxy"]["enabled"].lower() == "true":
+            logger.info("Using proxies from")
+            logger.info(proxy_handler)
+            logger.info("Updating goose config using proxy ...")
+            goose_config["http_proxy"] = proxy_handler.get('http')
+            goose_config["https_proxy"] = proxy_handler.get('https')
+            logger.info("Done with request using proxy ...")
+
+        g = Goose(goose_config)
+        logger.debug("Goose current parser is {}".format(g.config.get_parser()))
+        article = g.extract(url=url)
+        logger.debug("Extracted content of article from {}".format(url))
+        content = article.cleaned_text.replace("\n", " ")
+        cleaned_text = article.cleaned_text
+        paragraphs_list = list()
+        paragraphs_list = paragraphs_list + cleaned_text.split('\n')
+
+        logger.debug(content)
+
+        return {"content": content, "paragraphs_list": paragraphs_list}
+    except TimeoutError:
+        logging.info("Article's content from {} takes too long to load".format(url))
+        logging.info("Goose is unable to read these content due to timeout")
+        erroneous_urls.append({"url": url, "error": "Unable to get content"})
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
+    except ValueError:
+        logging.info("Article's content from {} has unicode strings with encoding declaration".format(url))
+        logging.info("Goose is unable to read these content")
+        erroneous_urls.append({"url": url, "error": "Unable to get content"})
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
+    except Exception:
+        logging.exception("Error getting article's content from {}".format(url))
+        erroneous_urls.append({"url": url, "error": "Unable to get content"})
+        content = ""
+        return {"content": content, "paragraphs_list": list()}
+
+
+# Attempt to extract the probable event dates based on the set of dates returned by the date_finder library
+def extract_probable_event_dates(content, article_datetime):
+    cleaned_content = re.sub('\\bto\\b', 'and',
+                             content)  # this replacement is to overcome a bug in datefinder on date ranges using 'to'
+    month_keywords = months_of_year + month_abbreviations
+    probable_event_date_set = set()
+    article_datetime_plus_one_year = article_datetime + timedelta(days=365)
+    extracted_dates = datefinder.find_dates(cleaned_content, True, False, False)
+    for date in extracted_dates:
+        try:
+            has_month_reference = False
+            is_month_only = False
+            for keyword in month_keywords:
+                if re.search(r'\b' + keyword + r'\b', date[1]):
+                    has_month_reference = True
+                    if keyword == date[1]:
+                        is_month_only = True
+                    if "by " + keyword == date[1]:
+                        is_month_only = True
+                    if "of " + keyword == date[1]:
+                        is_month_only = True
+                    if "to " + keyword == date[1]:
+                        is_month_only = True
+                    if "on " + keyword == date[1]:
+                        is_month_only = True
+                    if keyword + " by" == date[1]:
+                        is_month_only = True
+                    if keyword + " of" == date[1]:
+                        is_month_only = True
+                    if keyword + " to" == date[1]:
+                        is_month_only = True
+                    if keyword + " on" == date[1]:
+                        is_month_only = True
+                    if re.search(keyword + ' ' + r'\b(20)\d{2}\b', date[1]):
+                        is_month_only = True
+            if (date[0] >= article_datetime) and (date[0] < article_datetime_plus_one_year) \
+                    and has_month_reference and not is_month_only:
+                adjusted_date = date[0]
+                extracted_date_string = adjusted_date.strftime('%Y-%m-%d %H:%M:%S')
+                probable_event_date_set.add(extracted_date_string)
+        except Exception as e:
+            logger.exception("Failed to compare dates")
+            continue
+    return list(probable_event_date_set)
+
+
+def get_gdelt_export_url(url):
+    if proxy_enabled == "true":
+        logger.info("Using proxies from")
+        logger.info(proxy_handler)
+        logger.info("Creating request using proxy ...")
+        r = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=10)
+        logger.info("Done with request using proxy ...")
+    else:
+        r = requests.get(url, headers=browser_headers, timeout=10)
+
+    text = r.text
+    return text.split('\n')[0].split(' ')[2]
+
+
+def get_gdelt_export_urls(url, max_urls=100):
+    logger.info("Retrieving GDELT export urls with max number of urls = {}".format(max_urls))
+    if proxy_enabled == "true":
+        logger.info("Using proxies from")
+        logger.info(proxy_handler)
+        logger.info("Creating request using proxy ...")
+        r = requests.get(url, proxies=proxy_handler, headers=browser_headers, timeout=10)
+        logger.info("Done with request using proxy ...")
+    else:
+        r = requests.get(url, headers=browser_headers, timeout=10)
+    text = r.text
+    lines = text.split('\n')
+    urls = list()
+
+    for i in reversed(range(len(lines))):
+        if len(urls) > max_urls:
+            break
+        try:
+            line = lines[i]
+            url = line.split(' ')[2]
+            if "export" in url:
+                urls.append(url)
+        except Exception:
+            continue
+
+    return urls
+
+
+def get_gdelt_csv_files(export_url):
+    logger.info('Downloading GDELT export zip file from  {} ... '.format(export_url))
+    if proxy_enabled == "true":
+        logger.info("Using proxies from")
+        logger.info(proxy_handler)
+        logger.info("Creating request using proxy ...")
+        r = requests.get(export_url, proxies=proxy_handler, headers=browser_headers, timeout=10, stream=True)
+        logger.info("Done with request using proxy ...")
+    else:
+        r = requests.get(export_url, headers=browser_headers, timeout=10, stream=True)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall(config["gdelt"]["in_process_csv_directory"])
+    csv_files = [f for f in os.listdir(config["gdelt"]["in_process_csv_directory"]) if
+                 isfile(join(config["gdelt"]["in_process_csv_directory"], f))]
+    logger.info('Downloaded GDELT export zip file from  {} ... '.format(export_url))
+    return csv_files
+
+
+def move_csv_files_to_processed_folder():
+    logger.info("Moving csv files to processed folder")
+    src = os.path.abspath(in_process_csv_directory)
+    dst = os.path.abspath(processed_csv_directory)
+    list_of_files = os.listdir(src)
+    for f in list_of_files:
+        full_path_src = src + os.sep + f
+        full_path_dest = dst + os.sep + f
+        os.rename(full_path_src, full_path_dest)
+        # subprocess.Popen("move " + "\"" + full_path + "\" \"" + dst + "\"", shell=True)  # move command is os
+        # dependent
+        logger.info("Moved file [" + full_path_src + "] to [" + full_path_dest + "]")
+
+
+def find_keyword(keyword, content):
+    if re.search(keyword, content.lower()):
+        return True
+    else:
+        return False
+
+
 if __name__ == '__main__':
     App.setup_directories()
     App.setup_logging()
-
-    # FOR TESTING
-    # http = urllib3.PoolManager()
-    # r = http.request('GET', 'https://www.globalsecurity.org/wmd/library/news/china/2019/china-191015-presstv01.htm')
-    # article_preview_request = requests.get('https://www.globalsecurity.org/wmd/library/news/china/2019/china-191015-presstv01.htm', headers=browser_headers, timeout=20, stream=True, verify=True)
-
-    # get_article_preview(
-    #     "https://www.msn.com/en-au/news/australia/slain-brisbane-gp-dr-luping-zeng-laid-to-rest/ar-BBWlwrD")
-    # get_article_content(
-    #     "https://www.msn.com/en-au/news/australia/slain-brisbane-gp-dr-luping-zeng-laid-to-rest/ar-BBWlwrD")
-
-    # export_urls = get_gdelt_export_urls("http://data.gdeltproject.org/gdeltv2/masterfilelist.txt")
-    # logger.info(export_urls)
-    # get_article_content('https://www.msn.com/en-my/news/national/malaysia-offers-sweet-deal-to-india-to-address-trade'
-    #                     '-imbalance/ar-AAIPvXf')
     run()

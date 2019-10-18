@@ -2,10 +2,11 @@ import datetime
 import logging
 import time
 import urllib
-import urllib.request
-import feedparser
+from urllib import request
 
+import feedparser
 import App
+
 from gdacs_event_codes_mapping import event_codes_mapping
 from gdacs_event_types import event_types
 from utils import config_utils, events_utils, proxies_utils
@@ -13,47 +14,20 @@ from utils import config_utils, events_utils, proxies_utils
 logger = logging.getLogger("GDACS")
 config = config_utils.get_app_config()
 
-http_proxies = config["proxy"]["http_ip_port"]
-https_proxies = config["proxy"]["https_ip_port"]
-
-http_proxy = ""
-https_proxy = ""
-
-for currentProxy in http_proxies:
-    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
-        logger.info("Bad HTTP Proxy: " + currentProxy)
-    else:
-        logger.info("HTTP is working: " + currentProxy)
-        http_proxy = currentProxy
-        break
-
-for currentProxy in https_proxies:
-    if proxies_utils.is_bad_proxy(currentProxy, 'http'):
-        logger.info("Bad HTTPS Proxy: " + currentProxy)
-    else:
-        logger.info("HTTPS is working: " + currentProxy)
-        https_proxy = currentProxy
-        break
-
-proxy_handler = {
-    "http": http_proxy,
-    "https": https_proxy
-}
-
 
 def run():
     logger.info("Running GDACS script")
     rss_24h_feed_url = config["gdacs"]["rss_24h_feed_url"]
     try:
         if config["proxy"]["enabled"].lower() == "true":
-            proxy_handler = urllib.request.ProxyHandler(
-                {
-                    "http": config["proxy"]["http_ip_port"],
-                    "https": config["proxy"]["https_ip_port"]
-                }
-            )
             logger.info("Added proxy handler")
-            gdacs_feed = feedparser.parse(rss_24h_feed_url, handlers=[proxy_handler])
+            proxy_handler = proxies_utils.get_proxy_handler()
+            logger.info("Using proxies from")
+            logger.info(proxy_handler)
+            logger.info("Creating request using proxy ...")
+            handler = request.ProxyHandler(proxy_handler)
+            gdacs_feed = feedparser.parse(rss_24h_feed_url, handlers=handler)
+            logger.info("Done with request using proxy ...")
         else:
             gdacs_feed = feedparser.parse(rss_24h_feed_url)
 
@@ -108,10 +82,11 @@ def run():
                 num_errors += 1
                 continue
 
-        events_utils.get_json(events_list)
+        if len(items) > 0:
+            events_utils.get_json(events_list)
 
-        if config["gdelt"]["generate_xml_files"]:
-            events_utils.get_xml_tree(events_list)
+            if config["gdelt"]["generate_xml_files"]:
+                events_utils.get_xml_tree(events_list)
 
         logger.info('\n\n#### Summary of GDACS events ###')
         logger.info('Number of disasters from GDACS = {}'.format(len(items)))

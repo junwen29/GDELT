@@ -4,12 +4,12 @@
         "log_directory": "../GDELT/logs"
     },
     "proxy":{
-        "enabled": "true",
+        "enabled": "false",
         "http_ip_port": [
-            "125.76.226.9:80", "25.176.126.9:80"
+            "http://125.26.7.124:61642", "http://119.82.253.63:34110"
         ],
         "https_ip_port": [
-            "125.76.226.9:80", "25.176.126.9:80"
+            "http://125.26.7.124:61642", "http://119.82.253.63:34110"
         ],
         "test_url": "https://www.google.com",
         "default_timeout": 10
