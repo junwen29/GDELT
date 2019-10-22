@@ -13,7 +13,12 @@ logger = logging.getLogger("Utils")
 def is_bad_proxy(pip, handler):
 
     try:
-        proxy_handler = urllib.request.ProxyHandler({handler: pip})
+        if handler == 'http':
+            proxy_handler = urllib.request.ProxyHandler({'http': pip})
+        elif handler == 'https':
+            proxy_handler = urllib.request.ProxyHandler({'https': pip})
+        else:
+            proxy_handler = urllib.request.ProxyHandler({'http': pip, 'https': pip})
         opener = urllib.request.build_opener(proxy_handler)
         opener.addheaders = [('User-agent', 'Mozilla/5.0')]
         urllib.request.install_opener(opener)

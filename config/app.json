@@ -4,7 +4,7 @@
         "log_directory": "../GDELT/logs"
     },
     "proxy":{
-        "enabled": "false",
+        "enabled": "true",
         "http_ip_port": [
             "http://125.26.7.124:61642", "http://119.82.253.63:34110"
         ],

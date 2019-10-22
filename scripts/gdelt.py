@@ -355,8 +355,7 @@ def get_article_content(url):
             logger.info("Using proxies from")
             logger.info(proxy_handler)
             logger.info("Updating goose config using proxy ...")
-            goose_config["http_proxy"] = proxy_handler.get('http')
-            goose_config["https_proxy"] = proxy_handler.get('https')
+            goose_config["http_proxies"] = {'http': proxy_handler.get('http'), 'https': proxy_handler.get('https')}
             logger.info("Done with request using proxy ...")
 
         g = Goose(goose_config)
